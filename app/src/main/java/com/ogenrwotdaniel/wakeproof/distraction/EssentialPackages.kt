@@ -164,6 +164,19 @@ private fun readHomes(context: Context): Set<String> {
         .toSet() - "android" - "com.android.settings"
 }
 
+/**
+ * Samsung's capture tools (Smart select's region capture, Screen write and the
+ * screenshot editor; 2026-11-15, the user: "everytime I try it fails"). Before,
+ * the focus, summary, night and clock walls landed on the capture overlay the
+ * moment it opened. Never walled and never away for the focus tree, but kept
+ * out of [essentialPackages]: an essential front app also stops the beside wall
+ * and the admin-lock landing, which a capture overlay must not do. Any app it
+ * hands off to is judged on its own.
+ */
+val SCREEN_CAPTURE_PACKAGES = setOf(
+    "com.samsung.android.app.smartcapture"
+)
+
 /** In-call screens: Samsung, AOSP, and Google's dialer, which hosts its own. */
 private val IN_CALL_PACKAGES = setOf(
     "com.samsung.android.incallui",

@@ -41,6 +41,8 @@ internal object TimerContract {
     const val KEY_LONG_EVERY = "t_long_every"
     const val KEY_LAST_FOCUS_SEC = "t_last_focus_sec"
     const val KEY_SUBJECT = "t_subject"
+    /** The calendar event of the phone's session (2026-11-15): app `WearEventKeys.KEY_TIMER_EVENT_TITLE`. */
+    const val KEY_EVENT_TITLE = "t_event_title"
 }
 
 /** A single push of Pomodoro timer state from the phone. */
@@ -96,7 +98,8 @@ data class TimerSnapshot(
                     longBreakSeconds = map.getInt(TimerContract.KEY_LONG_SEC, 0),
                     longBreakEvery = map.getInt(TimerContract.KEY_LONG_EVERY, 0),
                     lastFocusSeconds = map.getInt(TimerContract.KEY_LAST_FOCUS_SEC, 0),
-                    subject = map.getString(TimerContract.KEY_SUBJECT)?.takeIf { it.isNotBlank() }
+                    subject = map.getString(TimerContract.KEY_SUBJECT)?.takeIf { it.isNotBlank() },
+                    eventTitle = map.getString(TimerContract.KEY_EVENT_TITLE)?.takeIf { it.isNotBlank() }
                 )
             }
         )

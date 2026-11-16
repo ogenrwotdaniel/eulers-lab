@@ -60,7 +60,7 @@ class UsageViewModel @Inject constructor(
     private val wallRulesRepository: WallRulesRepository,
     private val summaryStore: com.ogenrwotdaniel.wakeproof.study.SessionSummaryStore,
     statsRepository: StatsRepository,
-    completionRepository: CompletionRepository,
+    private val completionRepository: CompletionRepository,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -109,7 +109,12 @@ class UsageViewModel @Inject constructor(
             credits = settingsRepository.settings.first().subjectCredits,
             nights = _nights.value,
             summaryPages = weekPhotos.size,
-            summaryPagesBySubject = bySubject
+            summaryPagesBySubject = bySubject,
+            // The same days as the report's pages, so a watch block stamped tomorrow
+            // (an import allows a day ahead) is not counted in this week's events.
+            focusByEvent = if (epochRange.isEmpty()) emptyList() else runCatching {
+                completionRepository.focusByEventBetween(epochRange.first, epochRange.last)
+            }.getOrDefault(emptyList())
         )
     }
 

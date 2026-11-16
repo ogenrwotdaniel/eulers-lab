@@ -2,8 +2,8 @@ package com.ogenrwotdaniel.wakeproof.distraction
 
 /**
  * Exam week (2026-11-09, user's choice): for the [EXAM_WEEK_DAYS] days up to and
- * including an exam on the Exams screen, gated apps lose their 08:20–08:50
- * Monday–Thursday opening and stay shut all day. It tightens only, needs nothing
+ * including an exam on the Exams screen, gated apps lose their Saturday–Sunday
+ * 14:00–16:00 opening and stay shut all day. It tightens only, needs nothing
  * switched on, and lifts by itself the day after the exam. A week once begun is
  * held ([heldExamsAfter]): deleting or moving the exam does not end it early.
  * Revision material is on the Blackboard screen, which no wall but the night's covers.

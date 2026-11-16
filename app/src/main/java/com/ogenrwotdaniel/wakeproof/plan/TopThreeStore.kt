@@ -76,8 +76,10 @@ fun topThreeEvening(minuteOfDay: Int): Boolean = minuteOfDay >= TOP_THREE_MINUTE
 /**
  * Tomorrow's top three (2026-11-13, the user: "the idea of writing down 3
  * important things for the next day was great ... bring it back but place it
- * at 7:50pm, 10 minutes to bedtime"). The part of the removed evening review
- * that was kept: no judging of the day, a fixed 19:50 alarm on the ringing
+ * at 7:50pm, 10 minutes to bedtime"; moved to 7:40pm, 20 minutes before, on
+ * 2026-11-14). The part of the removed evening review
+ * that was kept: no judging of the day, a fixed 19:40 alarm (19:50 until
+ * 2026-11-14, [TOP_THREE_MINUTES]) on the ringing
  * device (`StrictAlarm`, silenced by saving at least one line) and three lines
  * that wait on Home the next day.
  *

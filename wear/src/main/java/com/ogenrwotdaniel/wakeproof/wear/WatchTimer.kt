@@ -48,8 +48,14 @@ data class WatchTimerState(
     /** When the current focus block began, for the synced record. */
     val focusStartedAt: Long = 0L,
     val durations: WatchDurations = WatchDurations(),
-    /** The phone's active study subject at start, carried onto every block. */
+    /** The course at start (the phone's active subject, or the followed origin's), carried onto every block. */
     val subject: String? = null,
+    /**
+     * The calendar event the session runs for (2026-11-15): this watch's own
+     * event session, or the followed phone's. Carried onto every block beside
+     * [subject], so the week's time can be read by event as well as by course.
+     */
+    val eventTitle: String? = null,
     /** Focus blocks this session runs before stopping itself. */
     val targetFocusBlocks: Int = 0,
     /** A long break follows every this-many focus blocks (3 in the 3-hour preset). */
@@ -104,7 +110,9 @@ data class FocusBlock(
     val endedAt: Long,
     val minutes: Int,
     val epochDay: Long,
-    val subject: String?
+    val subject: String?,
+    /** The calendar event the block ran for; null for none. */
+    val eventTitle: String? = null
 )
 
 /**
@@ -134,7 +142,9 @@ data class PhoneSession(
     val longBreakSeconds: Int,
     val longBreakEvery: Int,
     val lastFocusSeconds: Int,
-    val subject: String?
+    val subject: String?,
+    /** The calendar event the phone's session runs for; null for none, or from an older phone. */
+    val eventTitle: String? = null
 )
 
 /**
@@ -203,6 +213,7 @@ object WatchTimer {
                 session.focusSeconds / 60, session.shortBreakSeconds / 60, session.longBreakSeconds / 60
             ),
             subject = session.subject,
+            eventTitle = eventTitleOf(session.eventTitle),
             targetFocusBlocks = session.targetFocusBlocks,
             longBreakEvery = session.longBreakEvery.coerceAtLeast(1),
             lastFocusSeconds = session.lastFocusSeconds.takeIf { it >= 60 } ?: session.focusSeconds,
@@ -266,6 +277,17 @@ object WatchTimer {
         return minutes.takeIf { it >= MIN_EXACT_SESSION_MINUTES }
     }
 
+    /** Longest event title kept on a block. A COPY of the phone's `EVENT_TITLE_MAX_CHARS`. */
+    const val EVENT_TITLE_MAX_CHARS = 80
+
+    /**
+     * Pure: [title] as a block keeps it, trimmed and cut to
+     * [EVENT_TITLE_MAX_CHARS]; null when blank. A COPY of the phone's
+     * `eventTitleOf`, so both devices label the same block alike.
+     */
+    fun eventTitleOf(title: String?): String? =
+        title?.trim()?.take(EVENT_TITLE_MAX_CHARS)?.trim()?.takeIf { it.isNotEmpty() }
+
     /**
      * An event session of exactly [totalMinutes], on the watch's own timer —
      * the same nuclear rules as any other: no pause, no stop.
@@ -274,7 +296,8 @@ object WatchTimer {
         totalMinutes: Int,
         subject: String?,
         now: Long,
-        sessionId: String = randomId()
+        sessionId: String = randomId(),
+        eventTitle: String? = null
     ): WatchTimerState {
         val plan = exactSessionPlan(totalMinutes)
         val state = WatchTimerState(
@@ -284,6 +307,7 @@ object WatchTimer {
             focusStartedAt = now,
             durations = WatchDurations(EXACT_FOCUS_MINUTES, EXACT_BREAK_MINUTES, EXACT_BREAK_MINUTES),
             subject = subject,
+            eventTitle = eventTitleOf(eventTitle),
             targetFocusBlocks = plan.focusBlocks,
             longBreakEvery = Int.MAX_VALUE,
             lastFocusSeconds = plan.lastFocusMinutes * 60,
@@ -376,7 +400,8 @@ object WatchTimer {
             endedAt = endedAt,
             minutes = (state.focusMillisOfBlock(done) / 60_000L).toInt(),
             epochDay = epochDayOf(endedAt, zone),
-            subject = state.subject
+            subject = state.subject,
+            eventTitle = state.eventTitle
         )
         // A timed session ends on its last focus block; its trailing break is
         // never run, as on the phone.

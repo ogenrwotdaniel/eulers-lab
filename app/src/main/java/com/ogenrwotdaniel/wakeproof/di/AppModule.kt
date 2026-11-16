@@ -27,7 +27,8 @@ object AppModule {
             .addMigrations(
                 WakeProofDatabase.MIGRATION_2_3,
                 WakeProofDatabase.MIGRATION_3_4,
-                WakeProofDatabase.MIGRATION_4_5
+                WakeProofDatabase.MIGRATION_4_5,
+                WakeProofDatabase.MIGRATION_5_6
             )
             // Pre-release safety net for version jumps with no migration path.
             .fallbackToDestructiveMigration(dropAllTables = true)

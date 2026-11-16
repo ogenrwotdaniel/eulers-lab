@@ -7,7 +7,11 @@ import com.ogenrwotdaniel.wakeproof.data.CompletionRepository
 import com.ogenrwotdaniel.wakeproof.data.SettingsRepository
 import com.ogenrwotdaniel.wakeproof.data.StatsRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
+import com.ogenrwotdaniel.wakeproof.distraction.AppBlockService
+import com.ogenrwotdaniel.wakeproof.distraction.ExamWeek
+import com.ogenrwotdaniel.wakeproof.distraction.examWeekHeld
 import java.time.LocalDate
+import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.first
@@ -30,6 +34,13 @@ object WearContract {
      * (0 = nothing owed): the watch starts no session of its own before then.
      */
     const val KEY_SUMMARY_UNTIL = "summary_until"
+    /**
+     * Wall-clock millis at which the exam weeks the phone holds end (the start of the
+     * day after the last exam of the run, phone time zone); 0 = no exam week. The
+     * watch shuts its gated apps until then (2026-11-15). MUST match wear
+     * `WearContract.KEY_EXAM_SHUT_UNTIL`.
+     */
+    const val KEY_EXAM_SHUT_UNTIL = "exam_shut_until"
     const val KEY_UPDATED = "updated_at"
     // Phase lengths and subject, so a pomodoro started ON THE WATCH (with no
     // phone around) runs the user's own lengths and logs under their subject.
@@ -180,7 +191,8 @@ class WearStatsSync @Inject constructor(
     private val statsRepository: StatsRepository,
     private val settingsRepository: SettingsRepository,
     private val completionRepository: CompletionRepository,
-    private val summaryStore: com.ogenrwotdaniel.wakeproof.study.SessionSummaryStore
+    private val summaryStore: com.ogenrwotdaniel.wakeproof.study.SessionSummaryStore,
+    private val examDao: com.ogenrwotdaniel.wakeproof.data.db.ExamDao
 ) {
     private val dataClient by lazy { Wearable.getDataClient(context) }
 
@@ -200,6 +212,7 @@ class WearStatsSync @Inject constructor(
                 WearContract.KEY_SUMMARY_UNTIL,
                 owed?.let { it.askedAtMillis + com.ogenrwotdaniel.wakeproof.study.SUMMARY_HOLD_MILLIS } ?: 0L
             )
+            dataMap.putLong(WearContract.KEY_EXAM_SHUT_UNTIL, examShutUntilMillis(examWeekForWatch(), ZoneId.systemDefault()))
             dataMap.putInt(WearContract.KEY_FOCUS_LEN, settings.focusMinutes)
             dataMap.putInt(WearContract.KEY_SHORT_BREAK_LEN, settings.shortBreakMinutes)
             dataMap.putInt(WearContract.KEY_LONG_BREAK_LEN, settings.longBreakMinutes)
@@ -215,4 +228,30 @@ class WearStatsSync @Inject constructor(
         }.asPutDataRequest().setUrgent()
         runCatching { dataClient.putDataItem(request).await() }
     }
+
+    /**
+     * The exam week the phone's walls hold: the running wall service's own answer,
+     * or, while it is not running (a grant missing), the same rule read from the
+     * stored holds and the upcoming exams. Null on an ordinary day or a failed read.
+     */
+    private suspend fun examWeekForWatch(): ExamWeek? {
+        // A running service's null may only mean its first exam read is not in yet
+        // (just after an APK replace or a restart); trusting it would tell the watch
+        // there is no exam week and open its gated apps. So only a held week is
+        // taken from the service, and null falls through to the stored holds.
+        val (running, held) = AppBlockService.examWeekNow()
+        if (running && held != null) return held
+        return runCatching {
+            val today = LocalDate.now().toEpochDay()
+            val exams = examDao.observeUpcoming(today).first().map { it.name to it.epochDay }
+            examWeekHeld(exams, AppBlockService.storedExamHolds(context).orEmpty(), today)
+        }.getOrNull()
+    }
 }
+
+/**
+ * Pure: when [week]'s wall lifts, as wall-clock millis: the start of the day after its
+ * exam in [zone] (exam week holds through the exam day itself). 0 for no exam week.
+ */
+fun examShutUntilMillis(week: ExamWeek?, zone: ZoneId): Long =
+    week?.let { LocalDate.ofEpochDay(it.epochDay + 1).atStartOfDay(zone).toInstant().toEpochMilli() } ?: 0L

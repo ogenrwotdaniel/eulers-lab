@@ -20,5 +20,10 @@
                 <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
             </intent-filter>
         </receiver>
+        <!-- The adb way out of the uninstall lock; DUMP keeps every installed app from sending it. -->
+        <receiver
+            android:name=".admin.ReleaseAdminReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP" />
     </application>
 </manifest>

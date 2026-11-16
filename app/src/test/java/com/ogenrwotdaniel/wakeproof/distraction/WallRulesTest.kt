@@ -41,6 +41,47 @@ class WallRulesTest {
     }
 
     @Test
+    fun `a stored bedtime that closes the whole window falls back with the window`() {
+        // Kept as stricter (13:00 < 16:00), but it leaves no weekend minute open.
+        val early = fixedRules { if (it == WallRule.BEDTIME_START_MINUTES) 13 * 60 else null }
+        assertEquals(14 * 60 to 16 * 60, gatedOpenWindow(early))
+        assertEquals(16 * 60, early.bedtimeStartMinutes)
+        // One that still leaves part of the window open is the user's own tightening.
+        val partial = fixedRules { if (it == WallRule.BEDTIME_START_MINUTES) 15 * 60 else null }
+        assertEquals(14 * 60 to 15 * 60, gatedOpenWindow(partial))
+        // An empty stored window resets alone when the stored bedtime leaves the fixed one partly open.
+        val both = fixedRules {
+            when (it) {
+                WallRule.OPEN_WINDOW_START_MINUTES -> 6 * 60
+                WallRule.OPEN_WINDOW_END_MINUTES -> 8 * 60
+                WallRule.BEDTIME_START_MINUTES -> 15 * 60
+                else -> null
+            }
+        }
+        assertEquals(14 * 60 to 15 * 60, gatedOpenWindow(both))
+        // A stricter stored window survives when resetting the bedtime alone reopens it.
+        val stricterWindow = fixedRules {
+            when (it) {
+                WallRule.OPEN_WINDOW_START_MINUTES -> 14 * 60 + 30
+                WallRule.OPEN_WINDOW_END_MINUTES -> 15 * 60 + 30
+                WallRule.BEDTIME_START_MINUTES -> 13 * 60
+                else -> null
+            }
+        }
+        assertEquals(14 * 60 + 30 to 15 * 60 + 30, gatedOpenWindow(stricterWindow))
+    }
+
+    @Test
+    fun `the next open day follows the shut days`() {
+        assertEquals("Saturday", firstOpenDayAfter(java.time.DayOfWeek.MONDAY))
+        assertEquals("Saturday", firstOpenDayAfter(java.time.DayOfWeek.FRIDAY))
+        assertEquals("Sunday", firstOpenDayAfter(java.time.DayOfWeek.SATURDAY))
+        assertEquals("Saturday", firstOpenDayAfter(java.time.DayOfWeek.SUNDAY))
+        assertEquals("Monday to Friday", shutDaysLabel("to"))
+        assertEquals("Saturday and Sunday", openDaysLabel())
+    }
+
+    @Test
     fun `gated apps open for the whole weekend window, which ends as bedtime starts`() {
         assertEquals(14 * 60 to 16 * 60, gatedOpenWindow(WallRules()))
         // An earlier window that starts before BEDTIME_END_MINUTES waits for it.

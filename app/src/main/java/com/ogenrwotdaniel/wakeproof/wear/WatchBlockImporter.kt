@@ -59,11 +59,12 @@ class WatchBlockImporter @Inject constructor(
                     epochDay = map.getLong(WearContract.KEY_SESSION_EPOCH_DAY),
                     minutes = map.getInt(WearContract.KEY_SESSION_MINUTES),
                     subject = map.getString(WearContract.KEY_SESSION_SUBJECT),
+                    eventTitle = map.getString(WearEventKeys.KEY_SESSION_EVENT_TITLE),
                     todayEpochDay = today
                 )
                 val recorded = block == null || runCatching {
                     if (completionRepository.importFocusBlock(
-                            block.id, block.epochDay, block.minutes, block.subject
+                            block.id, block.epochDay, block.minutes, block.subject, block.eventTitle
                         )
                     ) imported++
                 }.isSuccess

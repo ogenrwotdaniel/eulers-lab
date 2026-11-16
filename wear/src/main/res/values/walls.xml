@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="wall_background">#FF0F1417</color>
+    <!-- The wall screen (walls/WatchBlockedActivity): dark, and not swiped away,
+         because a swipe would uncover the walled app it covers. -->
+    <style name="Theme.WakeProof.Wall" parent="@android:style/Theme.DeviceDefault">
+        <item name="android:windowSwipeToDismiss">false</item>
+        <item name="android:windowBackground">@color/wall_background</item>
+    </style>
+</resources>

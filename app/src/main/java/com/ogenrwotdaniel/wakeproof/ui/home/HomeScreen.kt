@@ -839,7 +839,7 @@ private fun MorningAlarmsWeek(week: List<DayStat>, modifier: Modifier = Modifier
 }
 
 /**
- * What last evening put first for today, and from 19:50 the ask for
+ * What last evening put first for today, and from `TOP_THREE_MINUTES` the ask for
  * tomorrow's. Read against the clock once a minute, so the evening card
  * appears on a Home left open.
  */

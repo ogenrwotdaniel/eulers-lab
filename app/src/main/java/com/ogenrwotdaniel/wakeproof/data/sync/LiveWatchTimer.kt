@@ -34,7 +34,9 @@ data class LiveWatchTimer(
     val shortBreakMinutes: Int = 0,
     val longBreakMinutes: Int = 0,
     val longBreakEvery: Int = 0,
-    val lastFocusSeconds: Int = 0
+    val lastFocusSeconds: Int = 0,
+    /** The calendar event the watch's session runs for (2026-11-15); null for none or from an older watch. */
+    val eventTitle: String? = null
 ) {
     /** The session to join, or null when idle, paused, or sent by a watch build that cannot share one. */
     fun toShared(): SharedSession? {
@@ -52,6 +54,7 @@ data class LiveWatchTimer(
             longBreakEvery = longBreakEvery.coerceAtLeast(1),
             lastFocusSeconds = lastFocusSeconds.takeIf { it > 0 } ?: (focusMinutes * 60),
             subject = subject,
+            eventTitle = eventTitle,
             // Every copy of the watch's timer was written by the watch.
             fromOrigin = origin == SharedSession.ORIGIN_WATCH
         )
@@ -77,7 +80,8 @@ data class LiveWatchTimer(
                 shortBreakMinutes = (fields["shortBreakMinutes"] as? Number)?.toInt() ?: 0,
                 longBreakMinutes = (fields["longBreakMinutes"] as? Number)?.toInt() ?: 0,
                 longBreakEvery = (fields["longBreakEvery"] as? Number)?.toInt() ?: 0,
-                lastFocusSeconds = (fields["lastFocusSeconds"] as? Number)?.toInt() ?: 0
+                lastFocusSeconds = (fields["lastFocusSeconds"] as? Number)?.toInt() ?: 0,
+                eventTitle = (fields["eventTitle"] as? String)?.takeIf { it.isNotBlank() }
             )
         }
     }

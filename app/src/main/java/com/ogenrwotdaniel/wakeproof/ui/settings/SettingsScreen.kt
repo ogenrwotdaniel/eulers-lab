@@ -278,8 +278,9 @@ fun SettingsScreen(
             )
             SwitchSetting(
                 label = "Study sound",
-                description = "Sound plays automatically during focus phases. Pick the ambient " +
-                    "loop (rain, fireplace…) on the Pomodoro screen. Turn off for silence.",
+                description = "Sound plays automatically during focus phases. Pick it on the " +
+                    "Pomodoro screen: an ambient loop (rain, fireplace…) or your own music " +
+                    "from this phone, played here. Turn off for silence.",
                 checked = settings.focusMusicEnabled,
                 onCheckedChange = viewModel::setFocusMusicEnabled
             )
@@ -292,7 +293,7 @@ fun SettingsScreen(
                     onCommit = viewModel::setSoundFadeSeconds
                 )
                 Text(
-                    text = "The ambient loop eases up from silence when a phase starts and " +
+                    text = "The study sound eases up from silence when a phase starts and " +
                         "back down before it ends, instead of snapping on and off. " +
                         "0 turns fading off. The fade-out starts this many seconds " +
                         "before the phase ends, so a long fade wants a long phase — " +

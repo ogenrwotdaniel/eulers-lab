@@ -48,6 +48,7 @@ class WearTimerSync @Inject constructor(
                 dataMap.putInt(WearContract.KEY_TIMER_LONG_EVERY, s.longBreakEvery)
                 dataMap.putInt(WearContract.KEY_TIMER_LAST_FOCUS_SEC, s.lastFocusSeconds)
                 dataMap.putString(WearContract.KEY_TIMER_SUBJECT, s.subject.orEmpty())
+                dataMap.putString(WearEventKeys.KEY_TIMER_EVENT_TITLE, s.eventTitle.orEmpty())
             }
         }.asPutDataRequest().setUrgent()
         runCatching { dataClient.putDataItem(request).await() }

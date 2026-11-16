@@ -1,5 +1,6 @@
 package com.ogenrwotdaniel.wakeproof.data
 
+import com.ogenrwotdaniel.wakeproof.data.db.EventMinutes
 import com.ogenrwotdaniel.wakeproof.data.db.SubjectMinutes
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -26,7 +27,13 @@ data class WeekStats(
     /** Handwritten closed-book derivation pages photographed across the 7-day window. */
     val summaryPages: Int = 0,
     /** Handwritten derivation pages per course/subject across the 7-day window. */
-    val summaryPagesBySubject: Map<String, Int> = emptyMap()
+    val summaryPagesBySubject: Map<String, Int> = emptyMap(),
+    /**
+     * Focus minutes per calendar event across the same 7 days, most first
+     * (2026-11-15). The same minutes are in [focusBySubject] under their course;
+     * this only says which events they went to.
+     */
+    val focusByEvent: List<EventMinutes> = emptyList()
 ) {
     /** The goal [day] was scored against: its own (raised before an exam), else the set one. */
     fun goalOf(day: DayStat): Int = day.focusGoalMinutes.takeIf { it > 0 } ?: dailyGoalMinutes
@@ -89,6 +96,12 @@ class WeeklyReportGenerator @Inject constructor() {
         stats.focusBySubject.filter { it.minutes > 0 }.maxByOrNull { it.minutes }?.let { top ->
             lines += "Most time went to ${top.subject ?: "untagged work"} " +
                 "(${formatDuration(top.minutes)})."
+        }
+        val events = stats.focusByEvent.filter { it.minutes > 0 }
+        if (events.isNotEmpty()) {
+            val shown = events.take(TOP_EVENTS).joinToString(", ") { "${it.eventTitle} ${formatDuration(it.minutes)}" }
+            val more = if (events.size > TOP_EVENTS) ", and ${events.size - TOP_EVENTS} more" else ""
+            lines += "Time by event: $shown$more."
         }
         val blackboard = stats.wall.sumOf { it.blackboardMinutes }
         if (blackboard > 0) {
@@ -254,5 +267,10 @@ class WeeklyReportGenerator @Inject constructor() {
         minutes < 60 -> "$minutes min"
         minutes % 60 == 0 -> "${minutes / 60} h"
         else -> "${minutes / 60} h ${(minutes % 60).toString().padStart(2, '0')} m"
+    }
+
+    private companion object {
+        /** Events named in the wins; the full list is in the CSV export. */
+        const val TOP_EVENTS = 3
     }
 }

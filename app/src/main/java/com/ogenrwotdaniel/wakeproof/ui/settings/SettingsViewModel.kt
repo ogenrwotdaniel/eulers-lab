@@ -74,19 +74,8 @@ class SettingsViewModel @Inject constructor(
             val result = runCatching {
                 val logs = completionRepository.getAll()
                 val csv = buildString {
-                    appendLine("date,kind,status,amount,subject,alarmId")
-                    logs.forEach { log ->
-                        appendLine(
-                            listOf(
-                                LocalDate.ofEpochDay(log.epochDay).toString(),
-                                log.kind.name,
-                                log.status.name,
-                                log.amount.toString(),
-                                "\"${(log.subject ?: "").replace("\"", "\"\"")}\"",
-                                log.alarmId?.toString() ?: ""
-                            ).joinToString(",")
-                        )
-                    }
+                    appendLine(com.ogenrwotdaniel.wakeproof.data.CompletionCsv.HEADER)
+                    logs.forEach { appendLine(com.ogenrwotdaniel.wakeproof.data.CompletionCsv.row(it)) }
                 }
                 withContext(Dispatchers.IO) {
                     context.contentResolver.openOutputStream(uri)?.use {

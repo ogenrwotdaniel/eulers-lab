@@ -65,6 +65,7 @@ import com.ogenrwotdaniel.wakeproof.data.LimitMode
 import com.ogenrwotdaniel.wakeproof.data.StudyTimeSummary
 import com.ogenrwotdaniel.wakeproof.data.UsageSnapshot
 import com.ogenrwotdaniel.wakeproof.data.WallDay
+import com.ogenrwotdaniel.wakeproof.distraction.shutDaysLabel
 import com.ogenrwotdaniel.wakeproof.distraction.BEDTIME_END_MINUTES
 import com.ogenrwotdaniel.wakeproof.distraction.MINUTES_PER_DAY
 import com.ogenrwotdaniel.wakeproof.distraction.longNightDevice
@@ -729,7 +730,7 @@ private fun ScheduleCard(
                 else -> "${clock(open.first)}–${clock(open.second)}"
             }
         )
-        if (rules.weekendShut) ScheduleRow(swatch = shutColor, label = "Monday to Friday", value = "Shut all day")
+        if (rules.weekendShut) ScheduleRow(swatch = shutColor, label = shutDaysLabel("to"), value = "Shut all day")
         if (rules.bedtimeStartMinutes >= 0) {
             ScheduleRow(
                 swatch = shutColor,

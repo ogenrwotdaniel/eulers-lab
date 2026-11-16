@@ -12,7 +12,13 @@ data class PagePhoto(
     val file: File,
     val epochDay: Long,
     val takenAtMillis: Long,
-    val subject: String? = null
+    val subject: String? = null,
+    /**
+     * How often the file was rewritten: a photo retaken under its own name
+     * ([PhotoShelf.replace]) is the same file, and views keyed on it alone
+     * would go on showing the old picture.
+     */
+    val version: Long = 0L
 )
 
 /** Pure: newest day first, and within a day the latest photo first. */
@@ -78,6 +84,13 @@ class PhotoShelf(
 ) {
     private val _revision = MutableStateFlow(0)
 
+    /**
+     * Rewrites per file name in this process, for [PagePhoto.version]: never
+     * the file's modified time, which a coarse filesystem clock or a clock set
+     * back could leave unchanged across a retake.
+     */
+    private val rewrites = java.util.concurrent.ConcurrentHashMap<String, Long>()
+
     /** Bumped on every save and delete, so a library reads again. */
     val revision: StateFlow<Int> = _revision
 
@@ -88,41 +101,75 @@ class PhotoShelf(
         now: Long,
         subject: String? = null
     ): PagePhoto = withContext(Dispatchers.IO) {
+        val folder = folder()
+        val target = File(folder, photoFileName(prefix, epochDay, now, subject))
+        writeWhole(target, jpeg)
+        val parsedSubject = parsePhotoFileMeta(prefix, target.name)?.third
+        // Counted on a save too: one landing on a name already listed must be read again.
+        val saved = PagePhoto(target, epochDay, now, parsedSubject, rewrites.merge(target.name, 1L, Long::plus) ?: 1L)
+        // Never the photo just taken, even under a day a wrong clock put far
+        // back; and a failed clean-up must not fail the save.
+        runCatching {
+            pagesToPrune(listNow() + saved, keepDays).forEach {
+                if (it.file != target && it.file.delete()) rewrites.remove(it.file.name)
+            }
+        }
+        _revision.update { it + 1 }
+        saved
+    }
+
+    /**
+     * Writes [jpeg] over the photo named [name], which keeps its name: its
+     * day, subject and the moment it was first taken. One file, so a retake
+     * can never leave two pages behind, and a failed write leaves the old
+     * picture whole. A photo deleted meanwhile is written anew, so the
+     * retake is never lost. Throws when storage cannot be written or [name]
+     * is not a photo name of this shelf.
+     */
+    suspend fun replace(name: String, jpeg: ByteArray): PagePhoto = withContext(Dispatchers.IO) {
+        val (day, at, subject) = parsePhotoFileMeta(prefix, name) ?: error("not a photo of this shelf")
+        val folder = folder()
+        val target = File(folder, name)
+        writeWhole(target, jpeg)
+        val version = rewrites.merge(name, 1L, Long::plus) ?: 1L
+        _revision.update { it + 1 }
+        PagePhoto(target, day, at, subject, version)
+    }
+
+
+    /** The shelf's folder, made when missing. Throws when it cannot be. */
+    private fun folder(): File {
         val folder = dir()
         if (!folder.isDirectory && !folder.mkdirs()) error("photo folder unavailable")
-        val target = File(folder, photoFileName(prefix, epochDay, now, subject))
-        // Written beside it and renamed: a kill part-way must not leave half a
-        // JPEG under a name the library would list.
-        val partial = File(folder, target.name + ".part")
+        return folder
+    }
+
+    /**
+     * Written beside [target] and renamed over it: a kill part-way must not
+     * leave half a JPEG under a name the library would list.
+     */
+    private fun writeWhole(target: File, jpeg: ByteArray) {
+        val partial = File(target.parentFile, target.name + ".part")
         try {
             partial.writeBytes(jpeg)
             if (!partial.renameTo(target)) error("photo could not be saved")
         } finally {
             partial.delete()
         }
-        val parsedSubject = parsePhotoFileMeta(prefix, target.name)?.third
-        val saved = PagePhoto(target, epochDay, now, parsedSubject)
-        // Never the photo just taken, even under a day a wrong clock put far
-        // back; and a failed clean-up must not fail the save.
-        runCatching {
-            pagesToPrune(listNow() + saved, keepDays).forEach { if (it.file != target) it.file.delete() }
-        }
-        _revision.update { it + 1 }
-        saved
     }
 
     suspend fun list(): List<PagePhoto> = withContext(Dispatchers.IO) { sortedPages(listNow()) }
 
     private fun listNow(): List<PagePhoto> = dir().listFiles().orEmpty().mapNotNull { file ->
         parsePhotoFileMeta(prefix, file.name)?.let { (day, at, subject) ->
-            PagePhoto(file, day, at, subject)
+            PagePhoto(file, day, at, subject, rewrites[file.name] ?: 0L)
         }
     }
 
     suspend fun delete(photo: PagePhoto) = withContext(Dispatchers.IO) {
         // Only a file of this shelf, whatever path the caller holds.
         if (photo.file.parentFile == dir() && parsePhotoFileName(prefix, photo.file.name) != null) {
-            photo.file.delete()
+            if (photo.file.delete()) rewrites.remove(photo.file.name)
         }
         _revision.update { it + 1 }
     }

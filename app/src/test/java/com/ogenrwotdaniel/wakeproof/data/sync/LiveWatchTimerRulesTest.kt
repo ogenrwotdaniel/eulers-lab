@@ -146,4 +146,21 @@ class LiveWatchTimerRulesTest {
         val tie = timer(completedFocus = 9, serverUpdatedAt = now)
         assertEquals(tie, LiveWatchTimerRules.newest(tie, timer(serverUpdatedAt = now)))
     }
+
+    @Test
+    fun `the watch's event title is read and carried to the shared session`() {
+        val fields = mapOf<String, Any?>(
+            "active" to true, "running" to true, "phase" to "FOCUS", "phaseEndsAt" to now + 90_000L,
+            "completedFocus" to 0L, "targetFocusBlocks" to 2L, "subject" to "Materials",
+            "focusMinutes" to 25L, "sessionId" to "0f8fad5b-d9cb", "origin" to "watch",
+            "eventTitle" to "Graphene seminar"
+        )
+        val parsed = LiveWatchTimer.fromFields(fields, serverUpdatedAtMillis = now)!!
+        assertEquals("Graphene seminar", parsed.eventTitle)
+        val shared = parsed.toShared()!!
+        assertEquals("Materials", shared.subject)
+        assertEquals("Graphene seminar", shared.eventTitle)
+        // A document from an older watch has none.
+        assertNull(LiveWatchTimer.fromFields(fields - "eventTitle", serverUpdatedAtMillis = now)!!.eventTitle)
+    }
 }

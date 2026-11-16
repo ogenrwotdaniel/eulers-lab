@@ -27,6 +27,7 @@ internal object WatchTimerStore {
     private const val SHORT_MIN = "short_min"
     private const val LONG_MIN = "long_min"
     private const val SUBJECT = "subject"
+    private const val EVENT_TITLE = "event_title"
     private const val TARGET = "target_blocks"
     private const val LONG_EVERY = "long_break_every"
     private const val LAST_FOCUS_SEC = "last_focus_seconds"
@@ -61,6 +62,8 @@ internal object WatchTimerStore {
             focusStartedAt = p.getLong(FOCUS_STARTED, 0L),
             durations = durations,
             subject = p.getString(SUBJECT, null),
+            // Absent in a state stored before event titles: no event.
+            eventTitle = p.getString(EVENT_TITLE, null),
             targetFocusBlocks = p.getInt(TARGET, 0),
             longBreakEvery = p.getInt(LONG_EVERY, WatchTimer.FOCUS_BLOCKS_PER_LONG_BREAK),
             // Absent in a state stored before event sessions: the last block
@@ -87,6 +90,7 @@ internal object WatchTimerStore {
             putInt(SHORT_MIN, state.durations.shortBreakMinutes)
             putInt(LONG_MIN, state.durations.longBreakMinutes)
             putString(SUBJECT, state.subject)
+            putString(EVENT_TITLE, state.eventTitle)
             putInt(TARGET, state.targetFocusBlocks)
             putInt(LONG_EVERY, state.longBreakEvery)
             putInt(LAST_FOCUS_SEC, state.lastFocusSeconds)

@@ -47,6 +47,9 @@ class SessionSummariesViewModel @Inject constructor(
         .map { runCatching { store.list() }.getOrDefault(emptyList()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+    /** Read once as the viewer opens ([SessionSummaryStore.canRetake]). */
+    fun canRetake(photo: PagePhoto): Boolean = store.canRetake(photo)
+
     fun delete(photo: PagePhoto) {
         viewModelScope.launch { runCatching { store.delete(photo) } }
     }
@@ -60,10 +63,12 @@ class SessionSummariesViewModel @Inject constructor(
 fun SessionSummariesScreen(
     onBack: () -> Unit,
     onAdd: () -> Unit,
+    onRetake: (PagePhoto) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SessionSummariesViewModel = hiltViewModel()
 ) {
     val summaries by viewModel.summaries.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
     var open by remember { mutableStateOf<PagePhoto?>(null) }
 
     Scaffold(modifier = modifier.fillMaxSize()) { innerPadding ->
@@ -83,7 +88,8 @@ fun SessionSummariesScreen(
                         text = "The closed-book Euler Derivation Protocol page you write in the ten " +
                             "minutes after each focus session (1. Theorems & definitions, 2. Crux " +
                             "derivation or counterexample, 3. Next open question). Kept on this " +
-                            "device for the latest 90 days.",
+                            "device for the latest 90 days. A photo can be retaken within " +
+                            "ten minutes of taking it, as long as Android has not closed the app in the meantime: open it and tap Retake.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -116,6 +122,9 @@ fun SessionSummariesScreen(
     }
 
     open?.let { photo ->
+        // Read as the viewer opens: a page read back and found wrong is
+        // retaken at once, not left open across the ten minutes.
+        val canRetake = remember(photo) { viewModel.canRetake(photo) }
         PhotoViewer(
             photo = photo,
             what = "Session summary",
@@ -123,7 +132,19 @@ fun SessionSummariesScreen(
             onDelete = {
                 viewModel.delete(photo)
                 open = null
-            }
+            },
+            onRetake = if (canRetake) {
+                {
+                    open = null
+                    // Asked again at the tap: a viewer left open must not offer
+                    // a retake whose keep would then be refused.
+                    if (viewModel.canRetake(photo)) onRetake(photo)
+                    else android.widget.Toast.makeText(
+                        context, "Its time for corrections is over: the photo stays as it is.",
+                        android.widget.Toast.LENGTH_LONG
+                    ).show()
+                }
+            } else null
         )
     }
 }

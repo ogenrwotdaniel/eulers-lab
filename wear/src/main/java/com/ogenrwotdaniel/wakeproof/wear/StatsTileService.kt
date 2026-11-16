@@ -11,8 +11,13 @@ import androidx.wear.protolayout.LayoutElementBuilders.VERTICAL_ALIGN_CENTER
 import androidx.wear.protolayout.ModifiersBuilders
 import androidx.wear.protolayout.ResourceBuilders
 import androidx.wear.protolayout.TimelineBuilders
+import androidx.wear.protolayout.TypeBuilders
+import androidx.wear.protolayout.expression.DynamicBuilders
+import androidx.wear.protolayout.material.CircularProgressIndicator
+import androidx.wear.protolayout.material.ProgressIndicatorColors
 import androidx.wear.protolayout.material.Text
 import androidx.wear.protolayout.material.Typography
+import java.time.Instant
 import androidx.wear.tiles.RequestBuilders
 import androidx.wear.tiles.TileBuilders
 import androidx.wear.tiles.TileService
@@ -155,7 +160,37 @@ class StatsTileService : TileService() {
                     )
                     .build()
             )
+            .addContent(ring(FocusFaces.tileRing(stats.focusGoal, today.minutes, timer, System.currentTimeMillis())))
             .addContent(column.build())
+            .build()
+    }
+
+    /**
+     * The arc round the tile's edge (2026-11-15): the phase while the timer runs,
+     * else today's focus against the goal. While a phase runs the arc is bound
+     * to the platform clock, so a renderer with dynamic data moves it on by
+     * itself between the tile's rare refreshes; an older one shows it as of the
+     * render, which every phase change refreshes.
+     */
+    private fun ring(ring: TileRing): LayoutElementBuilders.LayoutElement {
+        val progress = TypeBuilders.FloatProp.Builder(ring.progress)
+        val endsAt = ring.phaseEndsAt
+        if (endsAt != null && ring.phaseSeconds > 0) {
+            val secondsLeft = DynamicBuilders.DynamicInstant.platformTimeWithSecondsPrecision()
+                .durationUntil(DynamicBuilders.DynamicInstant.withSecondsPrecision(Instant.ofEpochMilli(endsAt)))
+                .toIntSeconds()
+                .asFloat()
+            progress.setDynamicValue(
+                DynamicBuilders.DynamicFloat.constant(1f).minus(secondsLeft.div(ring.phaseSeconds.toFloat()))
+            )
+        }
+        return CircularProgressIndicator.Builder()
+            .setProgress(progress.build())
+            .setStrokeWidth(6f)
+            .setCircularProgressIndicatorColors(
+                ProgressIndicatorColors(if (ring.accent) COLOR_STREAK else COLOR_GOOD, COLOR_TRACK)
+            )
+            .setContentDescription("Progress")
             .build()
     }
 
@@ -178,5 +213,6 @@ class StatsTileService : TileService() {
         const val COLOR_MUTED = 0xFFB0BEC5.toInt()
         const val COLOR_STREAK = 0xFFFF7043.toInt()
         const val COLOR_GOOD = 0xFF81C784.toInt()
+        const val COLOR_TRACK = 0xFF263238.toInt()
     }
 }

@@ -1,31 +1,38 @@
 package com.ogenrwotdaniel.wakeproof.wear
 
 import android.Manifest
-import androidx.activity.ComponentActivity
-import androidx.wear.ambient.AmbientLifecycleObserver
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.text.format.DateFormat
-import android.view.Gravity
 import android.view.MotionEvent
-import android.view.View
-import android.view.ViewGroup
-import android.widget.Button
-import android.widget.LinearLayout
-import android.widget.ScrollView
-import android.widget.TextView
+import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
+import androidx.wear.ambient.AmbientLifecycleObserver
+import androidx.wear.compose.foundation.pager.HorizontalPager
+import androidx.wear.compose.foundation.pager.rememberPagerState
+import androidx.wear.compose.material3.AnimatedPage
+import androidx.wear.compose.material3.AppScaffold
+import androidx.wear.compose.material3.HorizontalPagerScaffold
+import androidx.wear.compose.material3.ScreenScaffold
+import androidx.wear.compose.material3.TimeText
 import com.google.android.gms.wearable.DataClient
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.gms.wearable.DataEventBuffer
 import com.google.android.gms.wearable.Wearable
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Date
@@ -33,24 +40,34 @@ import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
+import com.ogenrwotdaniel.wakeproof.wear.walls.WatchWallGrants
+import com.ogenrwotdaniel.wakeproof.wear.walls.wallsStatusLine
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /**
- * Launcher screen for the watch app.
+ * The watch app (Compose for Wear OS since 2026-11-15): three swipe pages.
  *
- * The watch RUNS its own pomodoro now ([WatchTimerEngine]): start and skip a
- * break work with the phone in another room, flat, or never paired. There is
- * no pause and no stop (nuclear focus, as on the phone). Each finished focus block waits on the Data Layer and lands in the
- * phone's history — and from there in cloud sync — whenever the two next meet.
+ * * **Focus** — the session that runs, as a ring for the current phase with the
+ *   countdown, subject, block dots and the block's tree; idle, today's numbers
+ *   and the start options.
+ * * **Today** — the phone's calendar ([AgendaController], shared with [AgendaActivity]).
+ * * **Progress** — the streak, and today's focus against the goal as a ring.
  *
- * Three states, in this order of precedence:
+ * The watch RUNS its own pomodoro ([WatchTimerEngine]): start and skip a break
+ * work with the phone in another room, flat, or never paired. There is no
+ * pause and no stop (nuclear focus, as on the phone). Each finished focus block
+ * waits on the Data Layer and lands in the phone's history — and from there in
+ * cloud sync — whenever the two next meet.
+ *
+ * The Focus page has three states, in this order of precedence:
  * 1. the watch's own timer, if one is running;
  * 2. the phone's timer, mirrored (no pause/stop: the phone refuses them);
  * 3. idle: today's progress, plus Start (on the watch) and Start on phone —
- *    and the cloud line: who the watch uploads as, or a way to sign it in.
- * "Today" (the phone's calendar, [AgendaActivity]) is offered in all three.
+ *    and cloud sign-in when the watch is not signed in.
+ * Today is a swipe away in all three. The controls are exactly
+ * [FocusFaces.watchActions] / [FocusFaces.phoneActions] / [FocusFaces.idleActions].
  *
  * The alarm is deliberately not controllable from here. See the note on
  * `WearContract.COMMAND_PATH`: an alarm you can silence from your wrist is one
@@ -62,28 +79,35 @@ import kotlinx.coroutines.launch
  * Ambient-enabled: when the wrist drops mid-session the watch keeps THIS
  * screen up, dimmed, rather than returning to the watch face — so a glance
  * shows the block, not the time and a row of notifications. In ambient the
- * buttons go, the colours go to grey on black (OLED burn-in), and the
- * countdown drops to whole minutes, updated by the system's once-a-minute
- * ambient tick instead of a per-second loop. With nothing running there is
- * nothing to keep up, so ambient entry while idle finishes the activity and
+ * controls go, the colours go to grey on black (OLED burn-in), nothing
+ * animates, and the countdown drops to whole minutes, updated by the system's
+ * once-a-minute ambient tick instead of a per-second loop. With nothing running
+ * here there is nothing to keep up, so ambient entry finishes the activity and
  * the watch face returns as usual.
  *
- * This keeps WakeProof on the screen; it cannot keep you IN it. Wear OS has no
+ * This keeps Euler's Lab on the screen; it cannot keep you IN it. Wear OS has no
  * screen pinning for ordinary apps, so pressing a side button still leaves.
- *
- * Kept dependency-light (framework views, no Compose) — the Tile is still the
- * primary glanceable surface.
  */
 class MainActivity : ComponentActivity() {
 
     private val scope = MainScope()
     private var renderJob: Job? = null
-    private lateinit var textView: TextView
-    private lateinit var buttons: LinearLayout
-    private lateinit var root: ScrollView
-    private var ambient = false
+
+    /** The last read of everything the Focus and Progress pages show. */
+    private var home by mutableStateOf(HomeState())
+    /** The wall clock the countdown is drawn at; ticked by [render]'s loop. */
+    private var now by mutableLongStateOf(System.currentTimeMillis())
+    private var ambient by mutableStateOf(false)
+    /** "Phone unreachable. Couldn't …": shown until the next render. */
+    private var notice by mutableStateOf<String?>(null)
+    /** A phone command in flight: every control is disabled until it lands or fails. */
+    private var busy by mutableStateOf(false)
+    /** Bumped to bring the Focus page forward (a session just started from Today). */
+    private var focusRequests by mutableIntStateOf(0)
     /** The last sign-in outcome, shown in place of the cloud line until the screen closes. */
     private var cloudMessage: String? = null
+
+    private lateinit var agenda: AgendaController
 
     private val ambientCallback = object : AmbientLifecycleObserver.AmbientLifecycleCallback {
         override fun onEnterAmbient(ambientDetails: AmbientLifecycleObserver.AmbientDetails) {
@@ -94,9 +118,6 @@ class MainActivity : ComponentActivity() {
                 return
             }
             ambient = true
-            root.setBackgroundColor(Color.BLACK)
-            textView.setTextColor(Color.GRAY)
-            buttons.visibility = View.GONE
             render()
         }
 
@@ -104,23 +125,21 @@ class MainActivity : ComponentActivity() {
 
         override fun onExitAmbient() {
             ambient = false
-            root.setBackgroundColor(BACKGROUND)
-            textView.setTextColor(Color.WHITE)
-            buttons.visibility = View.VISIBLE
             render()
         }
     }
 
     /**
-     * Re-renders when the phone pushes new timer or stats state, so a command
-     * sent from here visibly lands rather than needing the screen reopened.
-     * Registered only while resumed — a watch screen that listens in the
-     * background is a battery cost with nothing to show for it.
+     * Re-renders when the phone pushes new timer, stats or agenda state, so a
+     * command sent from here visibly lands rather than needing the screen
+     * reopened. Registered only while resumed — a watch screen that listens in
+     * the background is a battery cost with nothing to show for it.
      */
     private val dataListener = DataClient.OnDataChangedListener { events: DataEventBuffer ->
-        val relevant = events.any { it.dataItem.uri.path?.startsWith("/wakeproof") == true }
+        val paths = events.mapNotNull { it.dataItem.uri.path }
         events.release()
-        if (relevant) render()
+        if (paths.any { it == AgendaContract.PATH }) agenda.onAgendaPushed()
+        if (paths.any { it.startsWith("/wakeproof") }) render()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -129,39 +148,13 @@ class MainActivity : ComponentActivity() {
         BackupAlarm.arm(this)
         scope.launch { BackupAlarm.pull(applicationContext) }
 
-        textView = TextView(this).apply {
-            gravity = Gravity.CENTER
-            setTextColor(Color.WHITE)
-            textSize = 16f
-            text = getString(R.string.app_name)
+        agenda = AgendaController(this, scope) {
+            // An event session started from the Today page: show it running.
+            focusRequests++
+            render()
         }
-        buttons = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-        }
-        val column = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            setPadding(24, 24, 24, 24)
-            addView(textView)
-            addView(buttons)
-        }
-        // Round watch faces clip the corners, and the button row can push the
-        // content past the bottom on a small face; scrolling is what keeps the
-        // last control reachable rather than merely drawn.
-        root = ScrollView(this).apply {
-            setBackgroundColor(BACKGROUND)
-            isFillViewport = true
-            addView(
-                column,
-                ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-                )
-            )
-        }
-        setContentView(root)
         lifecycle.addObserver(AmbientLifecycleObserver(this, ambientCallback))
+        setContent { HomeScreen() }
 
         // Needed so the timer Ongoing Activity can be posted on the watch face.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -171,12 +164,20 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /** Back here from [AgendaActivity] after it started a session: the Focus page shows it. */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        focusRequests++
+    }
+
     override fun onResume() {
         super.onResume()
         // Opening the app — from the alert or the launcher — is the acknowledgement.
         Buzzer.stop()
         Wearable.getDataClient(this).addListener(dataListener)
         render()
+        agenda.onResume()
         scope.launch { FocusSessionOutbox.flush(applicationContext) }
         CloudOutbox.kick(applicationContext)
     }
@@ -187,143 +188,123 @@ class MainActivity : ComponentActivity() {
         super.onPause()
     }
 
-    private fun render() {
-        renderJob?.cancel()
-        renderJob = scope.launch {
-            val local = WatchTimerEngine.state(applicationContext)
-            if (local.active) {
-                showLocalControls(local)
-                renderLocal(local)
-                return@launch
-            }
-            // A dead phone session (process killed, no final push) reads as idle.
-            val phone = TimerSnapshot.read(applicationContext)
-                ?.takeIf { it.liveAt(System.currentTimeMillis()) }
-            if (phone != null) {
-                showPhoneControls(phone)
-                renderPhoneTimer(phone)
-            } else {
-                showIdleControls()
-                renderStats()
+    @androidx.compose.runtime.Composable
+    private fun HomeScreen() {
+        EulerTheme {
+            AppScaffold(timeText = { TimeText() }) {
+                val pagerState = rememberPagerState(pageCount = { PAGE_COUNT })
+                LaunchedEffect(focusRequests) {
+                    if (focusRequests > 0) pagerState.animateScrollToPage(PAGE_FOCUS)
+                }
+                val state = home
+                val face = state.face(now, ambient)
+                if (ambient && face != null) {
+                    ScreenScaffold { _ -> AmbientFocus(face, ::time) }
+                    return@AppScaffold
+                }
+                HorizontalPagerScaffold(pagerState = pagerState) {
+                    HorizontalPager(state = pagerState) { page ->
+                        AnimatedPage(pageIndex = page, pagerState = pagerState) {
+                            when (page) {
+                                PAGE_FOCUS -> if (face != null) {
+                                    ScreenScaffold { _ ->
+                                        RunningFocus(face, notice, busy, ::time, ::onFocusAction)
+                                    }
+                                } else if (state.loaded) {
+                                    IdleFocus(state.numbers, state.idleActions, notice, busy, ::onIdleAction)
+                                } else {
+                                    ScreenScaffold { _ -> }
+                                }
+                                PAGE_TODAY -> AgendaPage(agenda)
+                                else -> ProgressPage(state.numbers)
+                            }
+                        }
+                    }
+                }
             }
         }
     }
-
-    // --- The watch's own timer -------------------------------------------------
 
     /**
-     * Skip break only (breaks only — skipping focus would be "stop" with better
-     * manners). No pause and no stop since 2026-10-27, as on the phone: once a
-     * session starts it runs to its last block. Resume appears only for a run
-     * paused by an older build, which would otherwise be stuck.
+     * Reads everything again and, while a countdown runs on screen, ticks [now]
+     * on the countdown's own second boundaries. Also where a phase end reached
+     * on screen is handed to the engine (the alarm may get there first; the
+     * engine credits the block once either way).
      */
-    private fun showLocalControls(state: WatchTimerState) {
-        buttons.removeAllViews()
-        if (!state.running) {
-            addButton("Resume") { WatchTimerEngine.resume(applicationContext) }
+    private fun render() {
+        renderJob?.cancel()
+        notice = null
+        renderJob = scope.launch {
+            val app = applicationContext
+            val local = WatchTimerEngine.state(app)
+            // A dead phone session (process killed, no final push) reads as idle.
+            val phone = if (local.active) null
+            else TimerSnapshot.read(app)?.takeIf { it.liveAt(System.currentTimeMillis()) }
+            val stats = WearStatsReader.read(app)
+            val pending = FocusSessionOutbox.pending(app)
+            val zone = ZoneId.systemDefault()
+            val today = focusToday(stats, pending, LocalDate.now(zone).toEpochDay(), zone)
+            home = HomeState(
+                loaded = true,
+                local = local.takeIf { it.active },
+                phone = phone,
+                numbers = TodayNumbers(
+                    statsPresent = stats.present,
+                    streak = stats.streak,
+                    asterisk = stats.asterisk,
+                    focusMinutes = today.minutes,
+                    goal = stats.focusGoal,
+                    unsyncedBlocks = today.unsyncedBlocks,
+                    cloudLine = FocusFaces.cloudLine(
+                        cloudMessage,
+                        WatchCloud.configured,
+                        if (WatchCloud.configured) WatchCloud.accountLabel(app) else null,
+                        if (WatchCloud.configured) CloudOutbox.waiting(app) else 0
+                    ),
+                    wallsLine = wallsStatusLine(WatchWallGrants.missing(app))
+                ),
+                idleActions = FocusFaces.idleActions(WatchCloud.canSignInHere, WatchCloud.signedIn(app))
+            )
+            now = System.currentTimeMillis()
+            when {
+                local.active -> tickLocal(local)
+                phone != null && phone.running -> tickPhone(phone)
+            }
         }
-        // Not for the phone's session run here: the phone keeps its time.
-        if (state.phase != WatchPhase.FOCUS && !state.following) {
-            addButton("Skip break") { WatchTimerEngine.skipBreak(applicationContext) }
-        }
-        addTodayButton()
     }
 
-    private suspend fun renderLocal(state: WatchTimerState) {
-        val footer = localFooter(state)
+    private suspend fun tickLocal(state: WatchTimerState) {
         if (ambient) {
-            // Whole minutes, rounded up: the screen updates once a minute here,
-            // and a seconds digit that is up to a minute stale is a wrong number.
-            val minutesLeft = (state.remainingSecondsAt(System.currentTimeMillis()) + 59) / 60
-            val paused = if (state.running) "" else " (paused)"
-            textView.text = "${state.phase.label}$paused\n\n$minutesLeft min$footer"
+            // The system's minute tick calls render() again; nothing loops here.
             if (state.isDue(System.currentTimeMillis())) {
                 WatchTimerEngine.advanceIfDue(applicationContext)
                 render()
             }
             return
         }
-        if (!state.running) {
-            textView.text = "${state.phase.label}\n\n${clock(state.remainingSecondsAt(0L))}\n\n(paused)$footer"
-            return
-        }
+        if (!state.running) return
         while (coroutineContext.isActive) {
-            val now = System.currentTimeMillis()
-            val remaining = state.remainingSecondsAt(now)
-            textView.text = "${state.phase.label}\n\n${clock(remaining)}$footer"
-            if (remaining <= 0L) {
+            val current = System.currentTimeMillis()
+            now = current
+            if (state.remainingSecondsAt(current) <= 0L) {
                 // The alarm will get there too; whichever is first credits the
                 // block, the other finds nothing due.
                 WatchTimerEngine.advanceIfDue(applicationContext)
                 render()
                 return
             }
-            val msLeft = state.phaseEndsAt - now
+            val msLeft = state.phaseEndsAt - current
             delay((msLeft - 1) % 1000L + 1)
         }
     }
 
-    /** "Break at 14:32" — a wall-clock time is easier to hold than a countdown. */
-    private fun localFooter(state: WatchTimerState): String {
-        val block = if (state.phase == WatchPhase.FOCUS) state.completedFocus + 1 else state.completedFocus
-        val of = if (state.targetFocusBlocks > 0) " of ${state.targetFocusBlocks}" else ""
-        val lastBlock = state.targetFocusBlocks in 1..block && state.phase == WatchPhase.FOCUS
-        val next = when {
-            lastBlock -> "Done"
-            state.phase == WatchPhase.FOCUS -> "Break"
-            else -> "Focus"
-        }
-        val at = if (state.running) "\n$next at ${timeFormat.format(Date(state.phaseEndsAt))}" else ""
-        return "\n\nBlock $block$of$at"
-    }
-
-    // --- The phone's timer, mirrored --------------------------------------------
-
-    /**
-     * The controls that make sense for the state the phone reports.
-     *
-     * Offering only the applicable ones — rather than greying out the rest — is
-     * what keeps this legible on a 45 mm screen, where every control costs a
-     * meaningful share of the face.
-     */
-    private fun showPhoneControls(timer: TimerSnapshot) {
-        buttons.removeAllViews()
-        // The phone refuses pause and stop mid-session, so offering them here
-        // would be two buttons that do nothing. Resume only rescues a session
-        // paused by an older phone build.
-        if (!timer.running) addPhoneButton("Resume", TimerCommands.RESUME)
-        // The same session on the wrist: it buzzes here at every phase even with
-        // the phone left behind, and a block finished on both is recorded once.
-        timer.session?.takeIf { timer.running }?.let { session ->
-            addButton("Continue here") {
-                val refusal = WatchTimerEngine.startRefusal(applicationContext)
-                if (refusal != null) {
-                    android.widget.Toast.makeText(this, refusal, android.widget.Toast.LENGTH_LONG).show()
-                } else {
-                    WatchTimerEngine.follow(applicationContext, session)
-                }
-            }
-        }
-        addTodayButton()
-    }
-
-    /** Shows the phone's countdown, ticking every second while running. */
-    private suspend fun renderPhoneTimer(timer: TimerSnapshot) {
-        val phase = timer.phase.ifBlank { "Focus" }
-        if (!timer.running) {
-            textView.text = "$phase · phone\n\n${clock(timer.remainingSeconds.toLong())}\n\n(paused)"
-            return
-        }
-        // Self-tick from the absolute finish time so the display is smooth even
-        // though the phone only pushes on transitions.
-        // Rounded UP and flipped on the finish time's own second boundaries, as
-        // the phone does — flooring, on unaligned boundaries, ran up to a second
-        // behind the phone on top of any clock difference.
+    /** Self-ticks from the phone's absolute finish time: the phone only pushes on transitions. */
+    private suspend fun tickPhone(timer: TimerSnapshot) {
         while (coroutineContext.isActive) {
-            val msLeft = (timer.finishAtMillis - System.currentTimeMillis()).coerceAtLeast(0L)
-            val remaining = (msLeft + 999) / 1000L
-            textView.text = "$phase · phone\n\n${clock(remaining)}"
-            if (remaining <= 0L) {
+            val current = System.currentTimeMillis()
+            now = current
+            val msLeft = (timer.finishAtMillis - current).coerceAtLeast(0L)
+            if (msLeft <= 0L) {
                 // No push for the next phase within the grace = the phone died
                 // mid-session ([TimerSnapshot.liveAt]); fall back to idle then.
                 val untilStale = timer.finishAtMillis + TimerSnapshot.RUNNING_STALE_MILLIS -
@@ -336,30 +317,59 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // --- Idle --------------------------------------------------------------------
+    private fun onFocusAction(action: FocusAction) {
+        when (action) {
+            FocusAction.RESUME -> runThenRender { WatchTimerEngine.resume(applicationContext) }
+            FocusAction.SKIP_BREAK -> runThenRender { WatchTimerEngine.skipBreak(applicationContext) }
+            FocusAction.CONTINUE_HERE -> runThenRender {
+                // The same session on the wrist: it buzzes here at every phase even
+                // with the phone left behind, and a block finished on both is recorded once.
+                val session = home.phone?.session ?: return@runThenRender
+                val refusal = WatchTimerEngine.startRefusal(applicationContext)
+                if (refusal != null) toast(refusal) else WatchTimerEngine.follow(applicationContext, session)
+            }
+            FocusAction.PHONE_RESUME -> sendToPhone("Resume", TimerCommands.RESUME)
+        }
+    }
+
+    private fun onIdleAction(action: IdleAction) {
+        when (action) {
+            is IdleAction.Start -> runThenRender {
+                val refusal = WatchTimerEngine.startRefusal(applicationContext)
+                if (refusal != null) toast(refusal) else WatchTimerEngine.start(applicationContext, action.session)
+            }
+            IdleAction.StartOnPhone -> sendToPhone("Start on phone", TimerCommands.START)
+            IdleAction.SignIn -> runThenRender { signInHere() }
+        }
+    }
+
+    private fun runThenRender(action: suspend () -> Unit) {
+        scope.launch {
+            action()
+            render()
+        }
+    }
 
     /**
-     * The four session lengths the phone offers — 1 h, 1 h 30, 2 h, 3 h — all
-     * run on the WATCH, and work with no phone at all. None can be paused or
-     * stopped once started. Starting on the phone is still offered, second,
-     * for a session that wants the phone's music, forest and app blocking.
+     * Fires a command and reports honestly if it did not land.
+     *
+     * There is no optimistic local state: the phone owns ITS timer, and the
+     * screen changes only when the phone pushes back. A watch that showed
+     * "paused" while the phone kept counting would be worse than one that
+     * showed nothing.
      */
-    private fun showIdleControls() {
-        buttons.removeAllViews()
-        for (session in WatchSession.entries) {
-            addButton(session.label) {
-                val refusal = WatchTimerEngine.startRefusal(applicationContext)
-                if (refusal != null) {
-                    android.widget.Toast.makeText(this, refusal, android.widget.Toast.LENGTH_LONG).show()
-                } else {
-                    WatchTimerEngine.start(applicationContext, session)
-                }
+    private fun sendToPhone(label: String, command: String) {
+        scope.launch {
+            // The phone would refuse it with a message nobody at the watch sees.
+            val refusal = if (command == TimerCommands.START) WatchTimerEngine.startRefusal(applicationContext) else null
+            if (refusal != null) {
+                toast(refusal)
+                return@launch
             }
-        }
-        addTodayButton()
-        addPhoneButton("Start on phone", TimerCommands.START)
-        if (WatchCloud.canSignInHere && !WatchCloud.signedIn(applicationContext)) {
-            addButton("Sign in to cloud") { signInHere() }
+            busy = true
+            val delivered = TimerCommands.send(applicationContext, command)
+            if (!delivered) notice = "Phone unreachable.\nCouldn't ${label.lowercase()}."
+            busy = false
         }
     }
 
@@ -389,117 +399,11 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    private suspend fun renderStats() {
-        val s = WearStatsReader.read(applicationContext)
-        val pending = FocusSessionOutbox.pending(applicationContext)
-        val zone = ZoneId.systemDefault()
-        val today = focusToday(s, pending, LocalDate.now(zone).toEpochDay(), zone)
-        textView.text = buildString {
-            if (s.present) {
-                append("🔥 ${s.streak}-day streak\n\n")
-                append("Focus ${formatFocusMinutes(today.minutes)}")
-                if (s.focusGoal > 0) append(" / ${formatFocusMinutes(s.focusGoal)}")
-            } else {
-                append("Focus today ${formatFocusMinutes(today.minutes)}")
-            }
-            if (today.unsyncedBlocks > 0) {
-                append("\n\n${today.unsyncedBlocks} block")
-                if (today.unsyncedBlocks > 1) append("s")
-                append(" waiting for phone")
-            }
-            append(cloudLine())
-        }
-    }
-
-    /** One line on the cloud upload; empty in a build with no cloud at all. */
-    private fun cloudLine(): String {
-        cloudMessage?.let { return "\n\n$it" }
-        if (!WatchCloud.configured) return ""
-        val account = WatchCloud.accountLabel(applicationContext) ?: return "\n\nCloud: not signed in"
-        val waiting = CloudOutbox.waiting(applicationContext)
-        return "\n\n☁ $account" + if (waiting > 0) "\n$waiting waiting for network" else ""
-    }
-
-    // --- Shared -------------------------------------------------------------------
-
-    /**
-     * Today's calendar from the phone, offered in EVERY state — with a session
-     * running (here or on the phone) it still ticks events off and says why a
-     * title cannot start another session. It was idle-only, so a phone session
-     * left no way in and no explanation. Hidden in ambient with the other buttons.
-     */
-    private fun addTodayButton() {
-        addButton("Today") { startActivity(Intent(this, AgendaActivity::class.java)) }
-    }
-
-    private fun addButton(label: String, action: suspend () -> Unit): Button {
-        val button = Button(this).apply {
-            text = label
-            textSize = 14f
-            isAllCaps = false
-            setOnClickListener {
-                scope.launch {
-                    action()
-                    render()
-                }
-            }
-        }
-        buttons.addView(
-            button,
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            ).apply { topMargin = 12 }
-        )
-        return button
-    }
-
-    /**
-     * Fires a command and reports honestly if it did not land.
-     *
-     * There is no optimistic local state: the phone owns ITS timer, and the
-     * screen changes only when the phone pushes back. A watch that showed
-     * "paused" while the phone kept counting would be worse than one that
-     * showed nothing.
-     */
-    private fun addPhoneButton(label: String, command: String) {
-        val button = Button(this).apply {
-            text = label
-            textSize = 14f
-            isAllCaps = false
-        }
-        button.setOnClickListener {
-            scope.launch {
-                // The phone would refuse it with a message nobody at the watch sees.
-                val refusal = if (command == TimerCommands.START) WatchTimerEngine.startRefusal(applicationContext) else null
-                if (refusal != null) {
-                    android.widget.Toast.makeText(this@MainActivity, refusal, android.widget.Toast.LENGTH_LONG).show()
-                    return@launch
-                }
-                setButtonsEnabled(false)
-                val delivered = TimerCommands.send(applicationContext, command)
-                if (!delivered) {
-                    textView.text = "Phone unreachable.\nCouldn't ${label.lowercase()}."
-                }
-                setButtonsEnabled(true)
-            }
-        }
-        buttons.addView(
-            button,
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            ).apply { topMargin = 12 }
-        )
-    }
-
-    private fun setButtonsEnabled(enabled: Boolean) {
-        for (i in 0 until buttons.childCount) buttons.getChildAt(i).isEnabled = enabled
-    }
+    private fun toast(text: String) = Toast.makeText(this, text, Toast.LENGTH_LONG).show()
 
     private val timeFormat by lazy { DateFormat.getTimeFormat(this) }
 
-    private fun clock(seconds: Long) = "%d:%02d".format(seconds / 60, seconds % 60)
+    private fun time(millis: Long): String = timeFormat.format(Date(millis))
 
     /**
      * Any touch silences a phase-change buzz: the app may already be on screen
@@ -516,6 +420,24 @@ class MainActivity : ComponentActivity() {
     }
 
     private companion object {
-        val BACKGROUND = Color.parseColor("#0F1417")
+        const val PAGE_COUNT = 3
+        const val PAGE_FOCUS = 0
+        const val PAGE_TODAY = 1
     }
+}
+
+/** One read of the watch's and the phone's timers and today's numbers. */
+data class HomeState(
+    val loaded: Boolean = false,
+    /** The watch's own run; null when none is active. */
+    val local: WatchTimerState? = null,
+    /** The phone's live run, mirrored; only read when the watch runs nothing. */
+    val phone: TimerSnapshot? = null,
+    val numbers: TodayNumbers = TodayNumbers(false, 0, false, 0, 0, 0, null),
+    val idleActions: List<IdleAction> = emptyList()
+) {
+    /** The running session's face at [now], the watch's own first; null when idle. */
+    fun face(now: Long, ambient: Boolean): RunningFace? =
+        local?.let { FocusFaces.watchFace(it, now, ambient) }
+            ?: phone?.let { FocusFaces.phoneFace(it, now) }
 }

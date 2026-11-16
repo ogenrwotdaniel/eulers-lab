@@ -11,7 +11,9 @@ data class WatchFocusBlock(
     val id: String,
     val epochDay: Long,
     val minutes: Int,
-    val subject: String?
+    val subject: String?,
+    /** The calendar event the block ran for; null for none, or from an older watch. */
+    val eventTitle: String? = null
 )
 
 /** Pure acceptance rules for a block from the watch; unit-tested. */
@@ -34,11 +36,15 @@ object WatchSessionImport {
         epochDay: Long,
         minutes: Int,
         subject: String?,
-        todayEpochDay: Long
+        todayEpochDay: Long,
+        eventTitle: String? = null
     ): WatchFocusBlock? {
         if (id.isNullOrBlank()) return null
         if (minutes !in 1..MAX_BLOCK_MINUTES) return null
         if (epochDay <= 0L || epochDay > todayEpochDay + 1) return null
-        return WatchFocusBlock(id, epochDay, minutes, subject?.takeIf { it.isNotBlank() })
+        return WatchFocusBlock(
+            id, epochDay, minutes, subject?.takeIf { it.isNotBlank() },
+            com.ogenrwotdaniel.wakeproof.pomodoro.eventTitleOf(eventTitle)
+        )
     }
 }

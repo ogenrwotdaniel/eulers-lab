@@ -26,6 +26,7 @@ class CloudDocumentsTest {
                 "status" to "VERIFIED",
                 "amount" to 25,
                 "subject" to "Anatomy",
+                "eventTitle" to null,
                 "syncId" to "b-1",
                 "updatedAt" to 1_500_000L,
                 "deleted" to false
@@ -61,5 +62,15 @@ class CloudDocumentsTest {
         assertNotEquals(CloudDocuments.liveTimerKey(running), CloudDocuments.liveTimerKey(running.copy(running = false)))
         assertNotEquals(CloudDocuments.liveTimerKey(running), CloudDocuments.liveTimerKey(running.copy(phaseEndsAt = 20_000L)))
         assertEquals("idle", CloudDocuments.liveTimerKey(WatchTimerState()))
+        assertNotEquals(CloudDocuments.liveTimerKey(running), CloudDocuments.liveTimerKey(running.copy(eventTitle = "Seminar")))
+    }
+
+    @Test
+    fun `a block and the live timer carry the event title beside the course`() {
+        val doc = CloudDocuments.block(block.copy(eventTitle = "Graphene seminar"))
+        assertEquals("Anatomy", doc["subject"])
+        assertEquals("Graphene seminar", doc["eventTitle"])
+        val live = CloudDocuments.liveTimer(WatchTimerState(active = true, eventTitle = "Graphene seminar"), now = 1L)
+        assertEquals("Graphene seminar", live["eventTitle"])
     }
 }

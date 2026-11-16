@@ -2,6 +2,8 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
+    // Compose compiler only; AGP 9 carries Kotlin itself (never apply kotlin.android).
+    alias(libs.plugins.kotlin.compose)
 }
 
 // Same untracked keystore.properties the phone module reads. The watch bundle goes
@@ -73,6 +75,7 @@ android {
 
     buildFeatures {
         buildConfig = true
+        compose = true
     }
 
     signingConfigs {
@@ -128,6 +131,13 @@ dependencies {
     // drops, instead of the watch returning to its face. Needs a ComponentActivity.
     implementation(libs.androidx.wear)
     implementation(libs.androidx.activity)
+
+    // The watch screens (2026-11-15): Compose for Wear OS, Material 3. No Hilt here.
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.wear.compose.material3)
+    implementation(libs.androidx.wear.compose.foundation)
 
     // Direct cloud upload (1.7): finished blocks and the live timer go straight to
     // the same Firestore tree the phone and tablet sync through, so a phone left

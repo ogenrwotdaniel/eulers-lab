@@ -85,18 +85,19 @@ fun WakeProofNavGraph(
             composable<PomodoroRoute> {
                 PomodoroScreen(
                     onBack = { navController.popBackStack() },
-                    onPhotographSummary = { navController.navigate(SummaryCaptureRoute) },
+                    onPhotographSummary = { navController.navigate(SummaryCaptureRoute()) },
                     onOpenSummaries = { navController.navigate(SessionSummariesRoute) }
                 )
             }
             composable<SummaryCaptureRoute> {
                 // Popped by name: a second tap must not pop the screen under it too.
-                SummaryCaptureScreen(onFinish = { navController.popBackStack(SummaryCaptureRoute, inclusive = true) })
+                SummaryCaptureScreen(onFinish = { navController.popBackStack<SummaryCaptureRoute>(inclusive = true) })
             }
             composable<SessionSummariesRoute> {
                 SessionSummariesScreen(
                     onBack = { navController.popBackStack() },
-                    onAdd = { navController.navigate(SummaryCaptureRoute) }
+                    onAdd = { navController.navigate(SummaryCaptureRoute()) },
+                    onRetake = { photo -> navController.navigate(SummaryCaptureRoute(replacing = photo.file.name)) }
                 )
             }
             composable<SettingsRoute> {

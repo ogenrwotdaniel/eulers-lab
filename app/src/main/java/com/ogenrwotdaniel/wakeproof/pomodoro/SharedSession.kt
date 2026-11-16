@@ -39,7 +39,14 @@ data class SharedSession(
     val longBreakSeconds: Int,
     val longBreakEvery: Int,
     val lastFocusSeconds: Int = focusSeconds,
+    /** The origin's course: what every device files the session's blocks under. */
     val subject: String? = null,
+    /**
+     * The calendar event the origin runs the session for (2026-11-15), so a
+     * follower records it on its copy of each block too; null for none, and in
+     * a copy from a build before it.
+     */
+    val eventTitle: String? = null,
     /**
      * This copy was written by the device the session started on. Only such a
      * copy moves a follower's countdown ([realignTo]): two followers correcting
@@ -151,19 +158,45 @@ fun realignTo(
 
 private const val FIELD_SEPARATOR = "|"
 
-/** [SharedSession] as one string, for an intent extra. */
+/**
+ * Marks the current [encodeShared] format (2026-11-15). The first field of the
+ * older format is a session id ([validSessionId]: at least 8 characters), so
+ * this can never be mistaken for one.
+ */
+private const val ENCODING_V2 = "2"
+
+private fun escape(text: String?): String = java.net.URLEncoder.encode(text.orEmpty(), "UTF-8")
+
+private fun unescape(text: String): String? =
+    java.net.URLDecoder.decode(text, "UTF-8").takeIf { it.isNotBlank() }
+
+/**
+ * [SharedSession] as one string, for an intent extra. The free-text labels
+ * (subject, event title) are URL-encoded so neither can hold the separator:
+ * with two of them, "free text goes last" no longer works.
+ */
 fun encodeShared(s: SharedSession): String = listOf(
+    ENCODING_V2,
     s.id, s.origin, s.phase.name, s.phaseEndsAtMillis, s.completedFocus, s.targetFocusBlocks,
     s.focusSeconds, s.shortBreakSeconds, s.longBreakSeconds, s.longBreakEvery, s.lastFocusSeconds,
     if (s.fromOrigin) 1 else 0,
-    // Last: a subject is free text and may hold the separator.
-    s.subject.orEmpty()
+    escape(s.subject),
+    escape(s.eventTitle)
 ).joinToString(FIELD_SEPARATOR)
 
-/** Null for anything unreadable. */
+/**
+ * Null for anything unreadable. Also reads the format before [ENCODING_V2]
+ * (13 fields, the subject raw and last), which an intent queued across an
+ * update may still carry.
+ */
 fun decodeShared(stored: String?): SharedSession? {
-    val p = stored?.split(FIELD_SEPARATOR, limit = 13) ?: return null
-    if (p.size != 13) return null
+    if (stored == null) return null
+    val v2 = stored.startsWith(ENCODING_V2 + FIELD_SEPARATOR)
+    val p = if (v2) {
+        stored.split(FIELD_SEPARATOR).drop(1).takeIf { it.size == 14 } ?: return null
+    } else {
+        stored.split(FIELD_SEPARATOR, limit = 13).takeIf { it.size == 13 } ?: return null
+    }
     return runCatching {
         SharedSession(
             id = validSessionId(p[0]) ?: return null,
@@ -178,7 +211,8 @@ fun decodeShared(stored: String?): SharedSession? {
             longBreakEvery = p[9].toInt().coerceAtLeast(1),
             lastFocusSeconds = p[10].toInt(),
             fromOrigin = p[11] == "1",
-            subject = p[12].takeIf { it.isNotBlank() }
+            subject = if (v2) unescape(p[12]) else p[12].takeIf { it.isNotBlank() },
+            eventTitle = if (v2) unescape(p[13]) else null
         )
     }.getOrNull()
 }
@@ -196,7 +230,8 @@ fun sharedFields(s: SharedSession): Map<String, Any?> = mapOf(
     SharedKeys.LONG_SECONDS to s.longBreakSeconds,
     SharedKeys.LONG_EVERY to s.longBreakEvery,
     SharedKeys.LAST_FOCUS_SECONDS to s.lastFocusSeconds,
-    SharedKeys.SUBJECT to s.subject
+    SharedKeys.SUBJECT to s.subject,
+    SharedKeys.EVENT_TITLE to s.eventTitle
 )
 
 /**
@@ -222,6 +257,8 @@ fun sharedFromFields(fields: Map<String, Any?>, writer: String): SharedSession? 
         longBreakEvery = (int(SharedKeys.LONG_EVERY) ?: return null).coerceAtLeast(1),
         lastFocusSeconds = int(SharedKeys.LAST_FOCUS_SECONDS) ?: focus,
         subject = (fields[SharedKeys.SUBJECT] as? String)?.takeIf { it.isNotBlank() },
+        // Absent in a copy written by a build before event titles: no event.
+        eventTitle = (fields[SharedKeys.EVENT_TITLE] as? String)?.takeIf { it.isNotBlank() },
         fromOrigin = origin == writer
     )
 }
@@ -244,6 +281,7 @@ object SharedKeys {
     const val LONG_EVERY = "longBreakEvery"
     const val LAST_FOCUS_SECONDS = "lastFocusSeconds"
     const val SUBJECT = "subject"
+    const val EVENT_TITLE = "eventTitle"
 }
 
 /**

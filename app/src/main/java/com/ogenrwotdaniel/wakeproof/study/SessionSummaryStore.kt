@@ -45,6 +45,9 @@ data class SummaryState(
     val lastKey: String = ""
 )
 
+/** The file-name prefix of the summary photos. */
+private const val SUMMARY_PHOTO_PREFIX = "summary"
+
 /** The "summarize this session" notification, posted by the timer and removed here once answered. */
 const val SUMMARY_NOTIFICATION_ID = 6
 
@@ -57,6 +60,54 @@ const val SUMMARY_WRITE_MILLIS = 10 * 60_000L
  * (no paper, a call, a dead camera nobody noticed) must not lock the phone.
  */
 const val SUMMARY_HOLD_MILLIS = 30 * 60_000L
+
+/**
+ * How long after a summary photo is taken it may still be retaken (2026-11-16,
+ * the user's request): a page often needs a correction once read back.
+ */
+const val SUMMARY_RETAKE_MILLIS = 10 * 60_000L
+
+/**
+ * Pure: [now] lies within [limit] after [takenAt], never before it. Called with
+ * time since boot ([summaryRetakeAllowed]), never the wall clock, which could
+ * be set back to reopen an old page.
+ */
+fun summaryRetakeOpen(takenAt: Long, now: Long, limit: Long = SUMMARY_RETAKE_MILLIS): Boolean =
+    now - takenAt in 0..limit
+
+/** Time to take and keep the retake once it was offered at the window's last moment. */
+const val SUMMARY_RETAKE_GRACE_MILLIS = 5 * 60_000L
+
+/**
+ * Pure: a photo kept at [keptElapsed] (time since boot, in this process; null
+ * when not known) may be retaken at [elapsed], within [limit]. Only this clock:
+ * the wall clock could be set back to reopen an old page, and a network
+ * correction of a few seconds back would shut a fresh one. A photo kept before
+ * this process started is never offered: its moment on this clock is not known.
+ */
+fun summaryRetakeAllowed(keptElapsed: Long?, elapsed: Long, limit: Long = SUMMARY_RETAKE_MILLIS): Boolean =
+    keptElapsed != null && summaryRetakeOpen(keptElapsed, elapsed, limit)
+
+/**
+ * How long a retake may still be kept: the ten minutes, plus
+ * [SUMMARY_RETAKE_GRACE_MILLIS] for the photo offered at their end, so a
+ * screen left open does not reopen the window.
+ */
+const val SUMMARY_RETAKE_KEEP_MILLIS = SUMMARY_RETAKE_MILLIS + SUMMARY_RETAKE_GRACE_MILLIS
+
+/** A retake kept after [SUMMARY_RETAKE_KEEP_MILLIS]: the earlier photo is left as it was. */
+class SummaryRetakeTooLateException : IllegalStateException("too late to retake this summary")
+
+/**
+ * Pure: a photo kept at [now] would come inside the owed summary's writing
+ * time. Refused (2026-11-16): such a photo settled nothing, and the finished
+ * page then made a second page for one session.
+ */
+fun summaryKeepTooEarly(state: SummaryState, now: Long, steady: SteadyClock? = null): Boolean =
+    summaryDue(state, now, steady)?.let { summaryWriteLeftMillis(it, now, steady) > 0 } ?: false
+
+/** A summary photo kept inside the writing time ([summaryKeepTooEarly]); nothing was saved. */
+class SummaryTooEarlyException : IllegalStateException("the ten minutes of writing come first")
 
 /**
  * Pure: the summary still owed at [now], or null. While it is owed the focus
@@ -113,8 +164,9 @@ fun withSummaryAsked(
 
 /**
  * Pure: [state] after a summary photo was kept (or let go for a dead camera) at [now]. It settles what is
- * owed only once the writing time has passed, so a page photographed from the
- * library in the first minute does not end the ten minutes early.
+ * owed only once the writing time has passed. A photo is refused inside the
+ * writing time anyway ([summaryKeepTooEarly]); this still holds the line for
+ * the way out without a photo ([SessionSummaryStore.release]).
  */
 fun withSummaryKept(state: SummaryState, now: Long, steady: SteadyClock? = null): SummaryState {
     val pending = state.pending ?: return state
@@ -141,9 +193,23 @@ class SessionSummaryStore @Inject constructor(@ApplicationContext private val co
         empty = SummaryState(),
         readable = { true }
     )
-    private val shelf = PhotoShelf({ File(context.filesDir, "session_summaries") }, "summary")
+    private val shelf = PhotoShelf({ File(context.filesDir, "session_summaries") }, SUMMARY_PHOTO_PREFIX)
 
     val state: StateFlow<SummaryState> = store.value
+
+    /** Time since boot at which each summary photo of this process was kept, for [canRetake]. */
+    private val keptAtElapsed = java.util.concurrent.ConcurrentHashMap<String, Long>()
+
+    /** Whether a retake of [photo] may be offered now: ten minutes ([summaryRetakeAllowed]). */
+    fun canRetake(photo: PagePhoto): Boolean = retakeOpen(photo.file.name, SUMMARY_RETAKE_MILLIS)
+
+    /**
+     * [limit] is longer for a keep already offered. Entries are never dropped,
+     * not even on delete: a retake of a photo deleted meanwhile is written anew,
+     * and the map holds only this process's few keeps.
+     */
+    private fun retakeOpen(name: String, limit: Long): Boolean =
+        summaryRetakeAllowed(keptAtElapsed[name], android.os.SystemClock.elapsedRealtime(), limit)
 
     /** Bumped on every save and delete, so the library reads again. */
     val revision: StateFlow<Int> = shelf.revision
@@ -177,15 +243,22 @@ class SessionSummaryStore @Inject constructor(@ApplicationContext private val co
         return asked
     }
 
-    /** Keeps [jpeg] as a summary, stamping the owed session's subject if present. Throws when storage cannot be written. */
+    /**
+     * Keeps [jpeg] as a summary, stamping the owed session's subject if present.
+     * Throws [SummaryTooEarlyException] inside the owed summary's writing time,
+     * and when storage cannot be written.
+     */
     suspend fun submit(
         jpeg: ByteArray,
         now: Long = System.currentTimeMillis(),
         subject: String? = store.value.value.pending?.subject
     ): PagePhoto {
         val day = Instant.ofEpochMilli(now).atZone(ZoneId.systemDefault()).toLocalDate().toEpochDay()
+        val steady = steadyClock(context)
+        if (summaryKeepTooEarly(store.read(), now, steady)) throw SummaryTooEarlyException()
         val saved = shelf.save(jpeg, day, now, subject)
-        settle { withSummaryKept(it, now, steadyClock(context)) }
+        keptAtElapsed[saved.file.name] = steady.elapsedMillis
+        settle { withSummaryKept(it, now, steady) }
         return saved
     }
 
@@ -205,6 +278,17 @@ class SessionSummaryStore @Inject constructor(@ApplicationContext private val co
             context.getSystemService(android.app.NotificationManager::class.java).cancel(SUMMARY_NOTIFICATION_ID)
         }
         return after.pending == null
+    }
+
+    /**
+     * Writes [jpeg] over the kept photo named [fileName] (a retake). It
+     * settles nothing that is owed; only [submit] does. Throws
+     * [SummaryRetakeTooLateException] after [SUMMARY_RETAKE_KEEP_MILLIS],
+     * and when storage cannot be written.
+     */
+    suspend fun replace(fileName: String, jpeg: ByteArray): PagePhoto {
+        if (!retakeOpen(fileName, SUMMARY_RETAKE_KEEP_MILLIS)) throw SummaryRetakeTooLateException()
+        return shelf.replace(fileName, jpeg)
     }
 
     suspend fun list(): List<PagePhoto> = shelf.list()

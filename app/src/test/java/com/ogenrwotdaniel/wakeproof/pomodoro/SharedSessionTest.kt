@@ -105,6 +105,33 @@ class SharedSessionTest {
     }
 
     @Test
+    fun `an event title survives an intent extra beside the course`() {
+        val event = session().copy(subject = "Materials|Lab", eventTitle = "Graphene | seminar 100% =x")
+        assertEquals(event, decodeShared(encodeShared(event)))
+        val none = session().copy(eventTitle = null)
+        assertEquals(none, decodeShared(encodeShared(none)))
+    }
+
+    @Test
+    fun `an extra written before event titles still decodes, with no event`() {
+        // The 13-field format: no version mark, the subject raw and last.
+        val old = listOf(id, SharedSession.ORIGIN_WATCH, "FOCUS", now, 1, 4, 1500, 300, 900, 4, 1500, 1, "A|B")
+            .joinToString("|")
+        val decoded = decodeShared(old)!!
+        assertEquals("A|B", decoded.subject)
+        assertNull(decoded.eventTitle)
+        assertEquals(id, decoded.id)
+    }
+
+    @Test
+    fun `document fields carry the event title, and an older document has none`() {
+        val phone = session(origin = "install-1").copy(eventTitle = "CV reading group")
+        val fields = sharedFields(phone).mapValues { (_, v) -> if (v is Int) v.toLong() else v }
+        assertEquals("CV reading group", sharedFromFields(fields, writer = "install-1")?.eventTitle)
+        assertNull(sharedFromFields(fields - SharedKeys.EVENT_TITLE, writer = "install-1")?.eventTitle)
+    }
+
+    @Test
     fun `document fields read back, and tell the origin's copy from a relayed one`() {
         val phone = session(origin = "install-1")
         // Firestore hands numbers back as Long.

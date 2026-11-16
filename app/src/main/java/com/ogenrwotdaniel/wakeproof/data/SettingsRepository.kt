@@ -54,9 +54,16 @@ data class WakeProofSettings(
      */
     val soundFadeSeconds: Int = 5,
     /**
-     * The bundled study-sound loop id ([com.ogenrwotdaniel.wakeproof.pomodoro.FocusSound]).
+     * The study sound's id ([com.ogenrwotdaniel.wakeproof.pomodoro.FocusSound]): a
+     * bundled loop, or `library` for the user's own music played in the app.
      */
     val focusSoundId: String = "focus_ambient",
+    /**
+     * Encoded [com.ogenrwotdaniel.wakeproof.music.MusicSelection]: which of the
+     * user's songs play when the sound is their own music.
+     */
+    val musicSelection: String = "all",
+    val musicShuffle: Boolean = true,
     /**
      * Pin the phone to Euler's Lab (screen pinning) while a session runs — focus
      * *and* break phases, released only by pause or stop. The break is part of
@@ -164,6 +171,8 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
             breakMusicEnabled = prefs[BREAK_MUSIC_ENABLED] ?: false,
             soundFadeSeconds = prefs[SOUND_FADE_SECONDS] ?: 5,
             focusSoundId = FocusSound.normalizedId(prefs[FOCUS_SOUND_ID]),
+            musicSelection = prefs[MUSIC_SELECTION] ?: "all",
+            musicShuffle = prefs[MUSIC_SHUFFLE] ?: true,
             focusLockPhone = prefs[FOCUS_LOCK_PHONE] ?: false,
             focusImmersiveTimer = prefs[FOCUS_IMMERSIVE_TIMER] ?: true,
             focusFloatingTimer = prefs[FOCUS_FLOATING_TIMER] ?: true,
@@ -201,6 +210,8 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     suspend fun setSoundFadeSeconds(value: Int) = dataStore.edit { it[SOUND_FADE_SECONDS] = value }
     suspend fun setFocusSoundId(value: String) =
         dataStore.edit { it[FOCUS_SOUND_ID] = FocusSound.normalizedId(value) }
+    suspend fun setMusicSelection(value: String) = dataStore.edit { it[MUSIC_SELECTION] = value }
+    suspend fun setMusicShuffle(value: Boolean) = dataStore.edit { it[MUSIC_SHUFFLE] = value }
     suspend fun setFocusLockPhone(value: Boolean) = dataStore.edit { it[FOCUS_LOCK_PHONE] = value }
     suspend fun setFocusImmersiveTimer(value: Boolean) =
         dataStore.edit { it[FOCUS_IMMERSIVE_TIMER] = value }
@@ -310,6 +321,9 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
         val SOUND_FADE_SECONDS = intPreferencesKey("sound_fade_seconds")
         val FOCUS_IMMERSIVE_TIMER = booleanPreferencesKey("focus_immersive_timer")
         val FOCUS_SOUND_ID = stringPreferencesKey("focus_sound_id")
+        // The keys 1.5.0 wrote, so a folder or album picked then plays again.
+        val MUSIC_SELECTION = stringPreferencesKey("music_selection")
+        val MUSIC_SHUFFLE = booleanPreferencesKey("music_shuffle")
         val FOCUS_LOCK_PHONE = booleanPreferencesKey("focus_lock_phone")
         val FOCUS_FLOATING_TIMER = booleanPreferencesKey("focus_floating_timer")
         // Key name kept from when this only covered focus phases, so existing

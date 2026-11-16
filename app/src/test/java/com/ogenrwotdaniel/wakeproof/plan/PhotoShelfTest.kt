@@ -2,11 +2,54 @@ package com.ogenrwotdaniel.wakeproof.plan
 
 import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PhotoShelfTest {
+
+    @get:org.junit.Rule
+    val folder = org.junit.rules.TemporaryFolder()
+
+    @Test
+    fun `a retake is written over the photo, which keeps its name, day, subject and first moment`() =
+        kotlinx.coroutines.runBlocking {
+            val shelf = PhotoShelf({ folder.root }, "summary")
+            val first = shelf.save(byteArrayOf(1), epochDay = 20_773L, now = 1_000L, subject = "Real Analysis")
+            val other = shelf.save(byteArrayOf(2), epochDay = 20_773L, now = 2_000L)
+
+            val retaken = shelf.replace(first.file.name, byteArrayOf(3))
+
+            assertEquals(first.file.name, retaken.file.name)
+            assertEquals(Triple(20_773L, 1_000L, "Real Analysis"), Triple(retaken.epochDay, retaken.takenAtMillis, retaken.subject))
+            assertEquals(listOf(other.file.name, first.file.name), shelf.list().map { it.file.name })
+            assertTrue(retaken.file.readBytes().contentEquals(byteArrayOf(3)))
+            // A new version each time, so a view keyed on it reads the picture again.
+            assertTrue(retaken.version > first.version)
+            val again = shelf.replace(first.file.name, byteArrayOf(4))
+            assertTrue(again.version > retaken.version)
+            assertEquals(again.version, shelf.list().first { it.file.name == first.file.name }.version)
+        }
+
+    @Test
+    fun `a retake of a photo deleted meanwhile is written anew, never lost`() = kotlinx.coroutines.runBlocking {
+        val shelf = PhotoShelf({ folder.root }, "summary")
+        val gone = shelf.save(byteArrayOf(1), epochDay = 1L, now = 1_000L, subject = "Optics")
+        shelf.delete(gone)
+
+        val retaken = shelf.replace(gone.file.name, byteArrayOf(3))
+
+        assertEquals(listOf(gone.file.name), shelf.list().map { it.file.name })
+        assertTrue(retaken.file.readBytes().contentEquals(byteArrayOf(3)))
+    }
+
+    @Test
+    fun `a retake names only a photo of its own shelf`() = kotlinx.coroutines.runBlocking {
+        val shelf = PhotoShelf({ folder.root }, "summary")
+        assertTrue(runCatching { shelf.replace("../notes.jpg", byteArrayOf(3)) }.isFailure)
+        assertTrue(shelf.list().isEmpty())
+    }
 
     @Test
     fun `a page photo's file name carries its day, moment, and optional subject and reads back`() {

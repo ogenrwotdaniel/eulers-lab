@@ -120,19 +120,27 @@ class WallRulesRepository @Inject constructor(@ApplicationContext private val co
 }
 
 /**
- * Pure: the rules in force given what was [stored] per rule. A stored window
- * that no longer leaves any minute open (e.g. a morning window from before the
- * weekend 14:00–16:00 move) falls back to the fixed window: with nothing left
- * to edit, it would otherwise shut gated apps for good.
+ * Pure: the rules in force given what was [stored] per rule. Stored values
+ * that no longer leave any minute open (a morning window from before the
+ * weekend 14:00–16:00 move, or an old bedtime at or before 14:00) fall back to
+ * fixed values, resetting as little as reopens a minute (bedtime, then window,
+ * then both): with nothing left to edit, they would otherwise shut gated apps
+ * for good.
  */
 fun fixedRules(stored: (WallRule) -> Int?): WallRules {
     val rules = WallRules(WallRule.entries.associateWith { it.fixedOrStricter(stored(it)) })
     val open = gatedOpenWindow(rules) ?: return rules
     if (open.first < open.second) return rules
-    return WallRules(
-        rules.values + listOf(WallRule.OPEN_WINDOW_START_MINUTES, WallRule.OPEN_WINDOW_END_MINUTES)
-            .associateWith { it.default }
-    )
+    // Loosen as little as possible (tighten-only): the bedtime alone, then the
+    // window alone, then both, keeping the first that opens any minute.
+    val bedtime = listOf(WallRule.BEDTIME_START_MINUTES)
+    val window = listOf(WallRule.OPEN_WINDOW_START_MINUTES, WallRule.OPEN_WINDOW_END_MINUTES)
+    for (reset in listOf(bedtime, window, bedtime + window)) {
+        val candidate = WallRules(rules.values + reset.associateWith { it.default })
+        val reopened = gatedOpenWindow(candidate) ?: return candidate
+        if (reopened.first < reopened.second) return candidate
+    }
+    return WallRules(rules.values + (bedtime + window).associateWith { it.default })
 }
 
 /**
@@ -168,6 +176,35 @@ fun bedtimeActive(minuteOfDay: Int, startMinutes: Int): Boolean =
 /** Pure: whether gated apps are shut all day on [dayOfWeek] under [WallRule.WEEKEND_SHUT] (Monday–Friday). */
 fun weekendShutActive(dayOfWeek: DayOfWeek, weekendShut: Boolean): Boolean =
     weekendShut && dayOfWeek in WEEKEND_SHUT_DAYS
+
+// Every day name in the wall copy comes from [WEEKEND_SHUT_DAYS] through these,
+// so changing the set cannot leave one line of a wall contradicting another.
+
+private fun dayName(day: DayOfWeek): String =
+    day.getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.ENGLISH)
+
+private fun listed(days: List<String>): String =
+    if (days.size <= 1) days.joinToString() else days.dropLast(1).joinToString(", ") + " and " + days.last()
+
+/**
+ * Pure: the first day after [today] that [WEEKEND_SHUT_DAYS] leaves open, or null
+ * when every day is shut (nothing ever opens, so no day may be promised).
+ */
+fun firstOpenDayAfter(today: DayOfWeek): String? =
+    (1..7).map { today.plus(it.toLong()) }.firstOrNull { it !in WEEKEND_SHUT_DAYS }?.let(::dayName)
+
+/** Pure: the days [WEEKEND_SHUT_DAYS] leaves open, in week order: "Saturday and Sunday". */
+fun openDaysLabel(): String = listed(DayOfWeek.entries.filter { it !in WEEKEND_SHUT_DAYS }.map(::dayName))
+
+/**
+ * Pure: the shut days, in week order. One unbroken run reads as a span joined by
+ * [through] ("Monday to Friday", "Monday through Friday"); anything else is listed.
+ */
+fun shutDaysLabel(through: String): String {
+    val days = DayOfWeek.entries.filter { it in WEEKEND_SHUT_DAYS }
+    val run = days.size >= 3 && days.zipWithNext().all { (a, b) -> b.value == a.value + 1 }
+    return if (run) "${dayName(days.first())} $through ${dayName(days.last())}" else listed(days.map(::dayName))
+}
 
 /**
  * Pure: whether [minuteOfDay] falls outside the gated apps' open window
@@ -212,9 +249,11 @@ fun nextOpenAfterToday(
     val hasWindow = startMinutes != RULE_OFF_MINUTES
     if (hasWindow && endMinutes <= startMinutes) return null
     val shutTomorrow = weekendShutActive(today.plus(1), weekendShut)
+    val nextDay = firstOpenDayAfter(today)
     return when {
-        shutTomorrow && hasWindow -> "Saturday at ${formatClock(startMinutes)}"
-        shutTomorrow -> "Saturday"
+        shutTomorrow && nextDay == null -> null
+        shutTomorrow && hasWindow -> "$nextDay at ${formatClock(startMinutes)}"
+        shutTomorrow -> nextDay
         hasWindow -> "tomorrow at ${formatClock(startMinutes)}"
         else -> null
     }
@@ -234,27 +273,30 @@ fun windowWallCopy(
 ): Pair<String, String> {
     val validWindow = startMinutes != RULE_OFF_MINUTES && endMinutes > startMinutes
     if (weekendShutActive(today, weekendShut)) {
-        val reopens = if (validWindow) {
-            "Saturday and Sunday between ${formatClock(startMinutes)} and ${formatClock(endMinutes)}"
-        } else {
-            "on Saturday"
+        val nextDay = firstOpenDayAfter(today)
+        val reopens = when {
+            nextDay == null -> "They do not open on any day."
+            validWindow -> "They open again ${openDaysLabel()} between ${formatClock(startMinutes)} and ${formatClock(endMinutes)}."
+            else -> "They open again on $nextDay."
         }
-        return "Shut Monday to Friday" to
-            "$label and every other gated app stay shut from Monday through Friday. " +
-            "They open again $reopens. The phone and SMS always work."
+        return "Shut ${shutDaysLabel("to")}" to
+            "$label and every other gated app stay shut from ${shutDaysLabel("through")}. " +
+            "$reopens The phone and SMS always work."
     }
     if (!validWindow) {
         return "Not open now" to
             "$label and every other gated app are shut right now. The phone and SMS always work."
     }
     val span = "${formatClock(startMinutes)} and ${formatClock(endMinutes)}"
-    val body = if (weekendShut && today == DayOfWeek.SUNDAY && minuteOfDay >= endMinutes) {
-        "$label and every other gated app open Saturday and Sunday between $span, " +
-            "and stay shut Monday through Friday — next open Saturday at ${formatClock(startMinutes)}. " +
+    // The last open day before a shut run, after its window: say when it comes back.
+    val nextDay = firstOpenDayAfter(today)
+    val body = if (weekendShut && weekendShutActive(today.plus(1), true) && minuteOfDay >= endMinutes && nextDay != null) {
+        "$label and every other gated app open ${openDaysLabel()} between $span, " +
+            "and stay shut ${shutDaysLabel("through")} — next open $nextDay at ${formatClock(startMinutes)}. " +
             "The phone and SMS always work."
     } else if (weekendShut) {
-        "$label and every other gated app open Saturday and Sunday between $span " +
-            "(shut Monday through Friday). The phone and SMS always work."
+        "$label and every other gated app open ${openDaysLabel()} between $span " +
+            "(shut ${shutDaysLabel("through")}). The phone and SMS always work."
     } else {
         "$label and every other gated app open only between $span. " +
             "The phone and SMS always work."

@@ -31,7 +31,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 /**
  * Tomorrow's top three: three lines and a save (see [TopThreeViewModel]).
  *
- * [ringing] true is the 19:50 alarm's screen: saving silences it
+ * [ringing] true is the top-three alarm's screen (`TOP_THREE_MINUTES`): saving silences it
  * ([onVerified]), and it has the ordinary snooze and emergency dismiss, since
  * the slot is fixed but not hard. False is the same screen opened from Home.
  */

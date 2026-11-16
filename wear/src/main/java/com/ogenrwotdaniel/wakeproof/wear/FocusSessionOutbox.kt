@@ -23,6 +23,8 @@ internal object SessionContract {
     const val KEY_MINUTES = "s_minutes"
     const val KEY_EPOCH_DAY = "s_epoch_day"
     const val KEY_SUBJECT = "s_subject"
+    /** The calendar event the block ran for (2026-11-15): app `WearEventKeys.KEY_SESSION_EVENT_TITLE`. */
+    const val KEY_EVENT_TITLE = "s_event_title"
 
     /**
      * String list on the phone's STATS item: block ids the phone holds. This is
@@ -112,7 +114,8 @@ internal object FocusSessionOutbox {
                             endedAt = map.getLong(SessionContract.KEY_ENDED),
                             minutes = map.getInt(SessionContract.KEY_MINUTES),
                             epochDay = map.getLong(SessionContract.KEY_EPOCH_DAY),
-                            subject = map.getString(SessionContract.KEY_SUBJECT)
+                            subject = map.getString(SessionContract.KEY_SUBJECT),
+                            eventTitle = map.getString(SessionContract.KEY_EVENT_TITLE)
                         )
                     }
             } finally {
@@ -145,6 +148,7 @@ internal object FocusSessionOutbox {
             dataMap.putInt(SessionContract.KEY_MINUTES, block.minutes)
             dataMap.putLong(SessionContract.KEY_EPOCH_DAY, block.epochDay)
             block.subject?.let { dataMap.putString(SessionContract.KEY_SUBJECT, it) }
+            block.eventTitle?.let { dataMap.putString(SessionContract.KEY_EVENT_TITLE, it) }
         }.asPutDataRequest().setUrgent()
         return runCatching { Wearable.getDataClient(context).putDataItem(request).await() }.isSuccess
     }
@@ -152,21 +156,44 @@ internal object FocusSessionOutbox {
     private fun prefs(context: Context) =
         context.applicationContext.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
-    /** Subject last, so a "|" typed into a subject name cannot shift the other fields. */
-    internal fun encode(b: FocusBlock): String =
-        listOf(b.id, b.startedAt, b.endedAt, b.minutes, b.epochDay, b.subject.orEmpty())
-            .joinToString(SEP)
+    /**
+     * Marks the current [encode] format (2026-11-15). A block stored by an older
+     * build starts with its id (a UUID or `<session>-b<n>`), never with this.
+     */
+    private const val FORMAT_V2 = "2"
 
+    /**
+     * The free-text labels (subject, event title) are URL-encoded so neither can
+     * hold the separator: with two of them, "free text goes last" no longer works.
+     */
+    internal fun encode(b: FocusBlock): String =
+        listOf(
+            FORMAT_V2, b.id, b.startedAt, b.endedAt, b.minutes, b.epochDay,
+            escape(b.subject), escape(b.eventTitle)
+        ).joinToString(SEP)
+
+    /** Also reads the older format (6 fields, the subject raw and last), which a block may still be stored in. */
     internal fun decode(raw: String): FocusBlock? {
-        val f = raw.split(SEP, limit = 6)
-        if (f.size != 6) return null
+        val v2 = raw.startsWith(FORMAT_V2 + SEP)
+        val f = if (v2) {
+            raw.split(SEP).drop(1).takeIf { it.size == 7 } ?: return null
+        } else {
+            raw.split(SEP, limit = 6).takeIf { it.size == 6 } ?: return null
+        }
         return FocusBlock(
             id = f[0],
             startedAt = f[1].toLongOrNull() ?: return null,
             endedAt = f[2].toLongOrNull() ?: return null,
             minutes = f[3].toIntOrNull() ?: return null,
             epochDay = f[4].toLongOrNull() ?: return null,
-            subject = f[5].ifEmpty { null }
+            subject = if (v2) unescape(f[5]) else f[5].ifEmpty { null },
+            eventTitle = if (v2) unescape(f[6]) else null
         )
     }
+
+    private fun escape(text: String?): String = java.net.URLEncoder.encode(text.orEmpty(), "UTF-8")
+
+    /** Null for a malformed escape, which would otherwise throw out of [flush]. */
+    private fun unescape(text: String): String? =
+        runCatching { java.net.URLDecoder.decode(text, "UTF-8") }.getOrNull()?.ifEmpty { null }
 }

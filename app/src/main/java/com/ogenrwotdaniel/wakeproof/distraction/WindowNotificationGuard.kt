@@ -27,8 +27,8 @@ import kotlinx.coroutines.withContext
  * arrive, and whatever is still in the shade when a wall goes up is swept.
  *
  * Since 2026-11-01 it asks [AppBlockService.walledNow] and follows EVERY wall —
- * a focus session (on any of the user's devices), a spent cap, the Monday–Thursday
- * open window and Friday–Sunday shutdown, bedtime, earn-the-feed, and the night
+ * a focus session (on any of the user's devices), a spent cap, the Monday–Friday
+ * shutdown and Saturday–Sunday 14:00–16:00 window, bedtime, and the night
  * sleep wall — because a notification is a way to read an app the wall keeps
  * shut: the shade, the Edge panel, Edge lighting and an icon's long-press preview
  * all show it. With the blocker not running it falls back to [windowShutActive]
@@ -153,8 +153,8 @@ class WindowNotificationGuard : NotificationListenerService() {
         AppBlockService.walledNow(sbn.packageName)?.let { return it }
         val now = LocalDateTime.now()
         val minuteOfDay = now.hour * 60 + now.minute
-        // The bedtime wall (until 08:20) takes the window's start, so the real
-        // opening, not the raw window, decides what is removed.
+        // The bedtime wall (from its start until 08:20) can cut into the window,
+        // so the real opening, not the raw window, decides what is removed.
         val open = gatedOpenWindow(rules)
         if (!windowShutActive(
                 dayOfWeek = now.dayOfWeek,

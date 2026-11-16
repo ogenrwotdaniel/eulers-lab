@@ -22,7 +22,8 @@ import java.util.UUID
  * [PLAN] (a photo of the day's handwritten plan) is retired the same way
  * since 2026-11-13: the user writes a summary after every focus session
  * instead. [SHUTDOWN] was the evening review, retired the same day and brought
- * back that evening as the 19:50 alarm for tomorrow's top three alone: it
+ * back that evening as the 19:50 (19:40 since 2026-11-14) alarm for
+ * tomorrow's top three alone: it
  * exists only as that locked slot, and any other row of the kind is deleted
  * ([com.ogenrwotdaniel.wakeproof.alarm.retiredAlarms]). [REVIEW] is a run of due
  * flashcards.

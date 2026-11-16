@@ -98,4 +98,23 @@ class BackupFileTest {
         assertTrue(backupFilename("2026-08-30") > backupFilename("2026-08-29"))
         assertTrue(backupFilename("2026-09-01") > backupFilename("2026-08-30"))
     }
+
+    @Test
+    fun `a focus log's event title travels in the backup, and older logs load without one`() {
+        val withEvent = backup.copy(
+            completionLogs = listOf(
+                CompletionLog(
+                    epochDay = 20_000, kind = GoalKind.FOCUS, status = CompletionStatus.VERIFIED,
+                    amount = 25, subject = "Materials", eventTitle = "Graphene seminar"
+                )
+            )
+        )
+        val text = json.encodeToString(BackupFile.serializer(), withEvent)
+        assertEquals(withEvent, json.decodeFromString(BackupFile.serializer(), text))
+        val old = json.decodeFromString(
+            BackupFile.serializer(),
+            """{"version":2,"completionLogs":[{"epochDay":20000,"kind":"FOCUS","status":"VERIFIED","amount":25}]}"""
+        )
+        assertEquals(null, old.completionLogs.single().eventTitle)
+    }
 }

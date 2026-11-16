@@ -23,6 +23,8 @@ internal object CloudContract {
     const val STATUS = "status"
     const val AMOUNT = "amount"
     const val SUBJECT = "subject"
+    /** 2026-11-15: the calendar event the block ran for. App `SyncTable` `"eventTitle"`. */
+    const val EVENT_TITLE = "eventTitle"
     const val KIND_FOCUS = "FOCUS"
     const val STATUS_VERIFIED = "VERIFIED"
 
@@ -47,6 +49,8 @@ internal object CloudContract {
     const val T_LONG_MINUTES = "longBreakMinutes"
     const val T_LONG_EVERY = "longBreakEvery"
     const val T_LAST_FOCUS_SECONDS = "lastFocusSeconds"
+    /** 2026-11-15, read by app `LiveWatchTimer.fromFields`. */
+    const val T_EVENT_TITLE = "eventTitle"
 
     /**
      * Phone -> watch: a fresh Google ID token for the phone's own account, so the
@@ -76,6 +80,7 @@ internal object CloudDocuments {
         CloudContract.STATUS to CloudContract.STATUS_VERIFIED,
         CloudContract.AMOUNT to block.minutes,
         CloudContract.SUBJECT to block.subject,
+        CloudContract.EVENT_TITLE to block.eventTitle,
         CloudContract.SYNC_ID to block.id,
         CloudContract.UPDATED_AT to block.endedAt,
         CloudContract.DELETED to false
@@ -102,6 +107,7 @@ internal object CloudDocuments {
         CloudContract.T_LONG_MINUTES to state.durations.longBreakMinutes,
         CloudContract.T_LONG_EVERY to state.longBreakEvery,
         CloudContract.T_LAST_FOCUS_SECONDS to state.lastFocusSeconds,
+        CloudContract.T_EVENT_TITLE to state.eventTitle,
         CloudContract.UPDATED_AT to now
     )
 
@@ -114,6 +120,6 @@ internal object CloudDocuments {
         if (!state.active) "idle"
         else listOf(
             state.running, state.phase.name, state.phaseEndsAt, state.remainingMillis,
-            state.completedFocus, state.targetFocusBlocks, state.subject.orEmpty()
+            state.completedFocus, state.targetFocusBlocks, state.subject.orEmpty(), state.eventTitle.orEmpty()
         ).joinToString("|")
 }

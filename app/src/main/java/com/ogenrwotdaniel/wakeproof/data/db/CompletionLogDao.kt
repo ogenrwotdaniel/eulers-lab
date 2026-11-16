@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.Flow
 /** Focus minutes per subject over a date range. */
 data class SubjectMinutes(val subject: String?, val minutes: Int)
 
+/** Focus minutes per calendar event over a date range. */
+data class EventMinutes(val eventTitle: String, val minutes: Int)
+
 /** Room access to [CompletionLog]. */
 @Dao
 interface CompletionLogDao : SyncDao<CompletionLog> {
@@ -41,6 +44,14 @@ interface CompletionLogDao : SyncDao<CompletionLog> {
             "GROUP BY subject ORDER BY minutes DESC"
     )
     fun observeFocusBySubject(fromEpochDay: Long): Flow<List<SubjectMinutes>>
+
+    /** Verified focus minutes per calendar event since [fromEpochDay]; blocks run for no event are left out. */
+    @Query(
+        "SELECT eventTitle, SUM(amount) AS minutes FROM completion_logs " +
+            "WHERE kind = 'FOCUS' AND status = 'VERIFIED' AND epochDay BETWEEN :fromEpochDay AND :toEpochDay AND deleted = 0 " +
+            "AND eventTitle IS NOT NULL GROUP BY eventTitle ORDER BY minutes DESC"
+    )
+    suspend fun focusByEventBetween(fromEpochDay: Long, toEpochDay: Long): List<EventMinutes>
 
     @Insert
     suspend fun insert(log: CompletionLog)

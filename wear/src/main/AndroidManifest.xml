@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-feature android:name="android.hardware.type.watch" />
 
@@ -26,11 +27,29 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+    <!-- Walls for gated apps on the watch (2026-11-15; walls/WatchWallService).
+         Wear OS has no settings screen for usage access, the overlay or notification
+         access: they are given over adb (appops / cmd notification), and the service
+         runs without them, walling nothing, until they are. Usage access sees the app
+         in front; the overlay lets the wall screen open from the background. No
+         KILL_BACKGROUND_PROCESSES: from Android 14 it kills only this app's own processes. -->
+    <uses-permission
+        android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <!-- Sideloaded personal build, never on Play: every installed app has to be
+         seen to tell a gated one (its category, a browser) from the rest. -->
+    <uses-permission
+        android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
+
     <!-- No backup: the watch holds a Firebase sign-in and unsent focus sessions,
          and neither belongs in a cloud backup or a device-to-device transfer.
          allowBackup and fullBackupContent cover Wear OS 3 (API 30); the
          extraction rules cover Android 12 and later. -->
     <application
+        android:name=".walls.WakeProofWearApp"
         android:allowBackup="false"
         android:fullBackupContent="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -167,6 +186,47 @@
         <!-- The backup for the phone's locked alarms; re-armed after boot/update. -->
         <receiver
             android:name=".BackupAlarm$Receiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- The wall over a gated app. Its own empty task affinity, so it never
+             brings the timer screen up with it, and kept out of Recents. Swipe-to-
+             dismiss is off: dismissing would uncover the walled app underneath. -->
+        <activity
+            android:name=".walls.WatchBlockedActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:screenOrientation="portrait"
+            android:taskAffinity=""
+            android:theme="@style/Theme.WakeProof.Wall" />
+
+        <service
+            android:name=".walls.WatchWallService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Keeps the user's own distraction walls up on the watch: watches which app is in front and covers gated social, video, messaging and browser apps outside the hours the user set." />
+        </service>
+
+        <!-- Removes gated apps' own notifications while they are shut. -->
+        <service
+            android:name=".walls.WatchWallNotificationListener"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+        <receiver
+            android:name=".walls.WatchWallBootReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

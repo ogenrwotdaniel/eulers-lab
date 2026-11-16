@@ -18,7 +18,8 @@ class CompletionRepository @Inject constructor(private val dao: CompletionLogDao
         status: CompletionStatus,
         amount: Int = 0,
         alarmId: Long? = null,
-        subject: String? = null
+        subject: String? = null,
+        eventTitle: String? = null
     ) {
         dao.insert(
             CompletionLog(
@@ -27,7 +28,8 @@ class CompletionRepository @Inject constructor(private val dao: CompletionLogDao
                 status = status,
                 amount = amount,
                 alarmId = alarmId,
-                subject = subject
+                subject = subject,
+                eventTitle = eventTitle
             )
         )
     }
@@ -44,7 +46,13 @@ class CompletionRepository @Inject constructor(private val dao: CompletionLogDao
      * of this one. So a SKIPPED row is stamped [SKIPPED_LEAD_MILLIS] ahead: it
      * wins that merge whichever copy uploads first.
      */
-    suspend fun logFocusBlock(syncId: String, status: CompletionStatus, minutes: Int, subject: String?) {
+    suspend fun logFocusBlock(
+        syncId: String,
+        status: CompletionStatus,
+        minutes: Int,
+        subject: String?,
+        eventTitle: String? = null
+    ) {
         val now = System.currentTimeMillis()
         val skipped = status == CompletionStatus.SKIPPED
         val existing = dao.findBySyncId(syncId) ?: run {
@@ -56,6 +64,7 @@ class CompletionRepository @Inject constructor(private val dao: CompletionLogDao
                         status = status,
                         amount = minutes,
                         subject = subject,
+                        eventTitle = eventTitle,
                         syncId = syncId,
                         updatedAt = if (skipped) now + SKIPPED_LEAD_MILLIS else now
                     )
@@ -66,14 +75,24 @@ class CompletionRepository @Inject constructor(private val dao: CompletionLogDao
             // (the sync id is unique): it is here now, and is judged like any other.
             dao.findBySyncId(syncId) ?: throw inserted.exceptionOrNull()!!
         }
-        if (skipped && existing.status != CompletionStatus.SKIPPED && !existing.deleted) {
+        if (existing.deleted) return
+        // A copy from a device that did not know the event (the watch's block, an
+        // older build) gains the title; a known title is never wiped by a null.
+        val title = existing.eventTitle ?: eventTitle
+        val toSkip = skipped && existing.status != CompletionStatus.SKIPPED
+        if (toSkip) {
             dao.update(
                 existing.copy(
                     status = CompletionStatus.SKIPPED,
+                    eventTitle = title,
                     updatedAt = maxOf(existing.updatedAt, now) + SKIPPED_LEAD_MILLIS,
                     pending = true
                 )
             )
+        } else if (title != existing.eventTitle) {
+            // A title-only fill-in is stamped just past the row it fills, never "now": a
+            // newer SKIPPED copy or a delete from another device must still win the merge.
+            dao.update(existing.copy(eventTitle = title, updatedAt = existing.updatedAt + 1, pending = true))
         }
     }
 
@@ -86,8 +105,28 @@ class CompletionRepository @Inject constructor(private val dao: CompletionLogDao
      * another device. A tombstone counts as present, so a block the user deleted
      * is not resurrected by a late redelivery.
      */
-    suspend fun importFocusBlock(syncId: String, epochDay: Long, minutes: Int, subject: String?): Boolean {
-        if (dao.findBySyncId(syncId) != null) return false
+    suspend fun importFocusBlock(
+        syncId: String,
+        epochDay: Long,
+        minutes: Int,
+        subject: String?,
+        eventTitle: String? = null
+    ): Boolean {
+        val existing = dao.findBySyncId(syncId)
+        if (existing != null) {
+            // A tombstone stays deleted, as in logFocusBlock: re-stamping it would only re-upload it.
+            if (existing.deleted) return false
+            // A phone that followed this watch session may have logged the block before
+            // the origin's copy told it the event (a lost apply() across a restart). The
+            // watch's own record then fills the title in, as logFocusBlock does, stamped
+            // just past the row (never "now", which could outrank a newer remote SKIPPED
+            // or delete); a known title is never replaced.
+            val title = existing.eventTitle ?: eventTitle
+            if (title != existing.eventTitle) {
+                dao.update(existing.copy(eventTitle = title, updatedAt = existing.updatedAt + 1, pending = true))
+            }
+            return false
+        }
         dao.insert(
             CompletionLog(
                 epochDay = epochDay,
@@ -95,6 +134,7 @@ class CompletionRepository @Inject constructor(private val dao: CompletionLogDao
                 status = CompletionStatus.VERIFIED,
                 amount = minutes,
                 subject = subject,
+                eventTitle = eventTitle,
                 syncId = syncId
             )
         )
@@ -106,6 +146,9 @@ class CompletionRepository @Inject constructor(private val dao: CompletionLogDao
 
     /** Focus minutes per subject since [fromEpochDay] (null subject = untagged). */
     fun observeFocusBySubject(fromEpochDay: Long) = dao.observeFocusBySubject(fromEpochDay)
+
+    /** Focus minutes per calendar event from [fromEpochDay] to [toEpochDay] inclusive, most first. */
+    suspend fun focusByEventBetween(fromEpochDay: Long, toEpochDay: Long) = dao.focusByEventBetween(fromEpochDay, toEpochDay)
 
     fun observeSince(fromEpochDay: Long): Flow<List<CompletionLog>> = dao.observeSince(fromEpochDay)
 

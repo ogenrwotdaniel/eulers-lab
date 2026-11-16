@@ -45,6 +45,9 @@ internal object WatchSessionContract {
     const val KEY_LONG_MIN = "ws_long_min"
     const val KEY_LONG_EVERY = "ws_long_every"
     const val KEY_LAST_FOCUS_SEC = "ws_last_focus_sec"
+
+    /** The calendar event the session runs for (2026-11-15): app `WearEventKeys.KEY_WS_EVENT_TITLE`. */
+    const val KEY_EVENT_TITLE = "ws_event_title"
 }
 
 object WatchSessionBeacon {
@@ -71,6 +74,7 @@ object WatchSessionBeacon {
             dataMap.putInt(WatchSessionContract.KEY_LONG_MIN, state.durations.longBreakMinutes)
             dataMap.putInt(WatchSessionContract.KEY_LONG_EVERY, state.longBreakEvery)
             dataMap.putInt(WatchSessionContract.KEY_LAST_FOCUS_SEC, state.lastFocusSeconds)
+            dataMap.putString(WatchSessionContract.KEY_EVENT_TITLE, state.eventTitle.orEmpty())
         }.asPutDataRequest().setUrgent()
         runCatching { Wearable.getDataClient(context).putDataItem(request) }
             .onFailure { Log.w(TAG, "watch session publish failed", it) }

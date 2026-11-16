@@ -59,6 +59,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ogenrwotdaniel.wakeproof.pomodoro.FocusQuote
 import com.ogenrwotdaniel.wakeproof.pomodoro.FocusQuotes
+import com.ogenrwotdaniel.wakeproof.music.MusicSelection
 import com.ogenrwotdaniel.wakeproof.pomodoro.FocusSound
 import com.ogenrwotdaniel.wakeproof.pomodoro.FocusTree
 import androidx.compose.ui.text.font.FontStyle
@@ -92,6 +93,9 @@ fun PomodoroScreen(
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val thoughts by viewModel.thoughts.collectAsStateWithLifecycle()
     val activeConjecture by viewModel.activeConjecture.collectAsStateWithLifecycle()
+    val library by viewModel.library.collectAsStateWithLifecycle()
+    val nowPlaying by viewModel.nowPlaying.collectAsStateWithLifecycle()
+    val libraryMessage by viewModel.libraryMessage.collectAsStateWithLifecycle()
     val quote = remember(timer.completedFocusSessions) {
         FocusQuotes.forBlock(java.time.LocalDate.now().toEpochDay(), timer.completedFocusSessions)
     }
@@ -310,6 +314,29 @@ fun PomodoroScreen(
                 onBreakChange = viewModel::setBreakMusicEnabled,
                 onSoundChange = viewModel::setFocusSound
             )
+            // Same choice as the loops, so it sits under them: whatever is
+            // selected there is the only sound. Not in FocusMode: the immersive
+            // timer keeps nothing but the countdown during a focus block.
+            if ((settings.focusMusicEnabled || settings.breakMusicEnabled) &&
+                FocusSound.fromId(settings.focusSoundId).ownMusic
+            ) {
+                Spacer(Modifier.height(4.dp))
+                MusicLibraryControls(
+                    library = library,
+                    selection = MusicSelection.decode(settings.musicSelection),
+                    shuffle = settings.musicShuffle,
+                    nowPlaying = nowPlaying,
+                    sessionActive = timer.active,
+                    message = libraryMessage,
+                    onLoad = { viewModel.loadLibrary() },
+                    onOpenPicker = { viewModel.loadLibrary(pickerOpen = true) },
+                    onSelect = viewModel::setMusicSelection,
+                    onFolderPicked = viewModel::onFolderPicked,
+                    onShuffleChange = viewModel::setMusicShuffle,
+                    onPrevious = { PomodoroTimerService.previousTrack(context) },
+                    onNext = { PomodoroTimerService.nextTrack(context) }
+                )
+            }
 
             if (settings.focusLockPhone) {
                 Spacer(Modifier.height(8.dp))
@@ -836,9 +863,9 @@ private fun ThoughtParking(
 }
 
 /**
- * Study-sound controls: independent focus/break toggles plus the bundled
- * ambient loop picker (shown while either toggle is on). Turning both toggles
- * off frees the audio output entirely.
+ * Study-sound controls: independent focus/break toggles plus the sound picker
+ * (shown while either toggle is on): a bundled loop or the user's own music,
+ * never both. Turning both toggles off frees the audio output entirely.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

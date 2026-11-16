@@ -11,8 +11,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.media.AudioAttributes
-import android.media.AudioFocusRequest
-import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.IBinder
 import android.os.PowerManager
@@ -34,6 +32,8 @@ import com.ogenrwotdaniel.wakeproof.distraction.WallRulesRepository
 import com.ogenrwotdaniel.wakeproof.distraction.DefaultApps
 import com.ogenrwotdaniel.wakeproof.distraction.essentialPackages
 import com.ogenrwotdaniel.wakeproof.distraction.readDefaultApps
+import com.ogenrwotdaniel.wakeproof.music.MusicLibrary
+import com.ogenrwotdaniel.wakeproof.music.NowPlaying
 import com.ogenrwotdaniel.wakeproof.wear.WearStatsSync
 import com.ogenrwotdaniel.wakeproof.wear.WearTimerSync
 import dagger.hilt.android.AndroidEntryPoint
@@ -83,6 +83,14 @@ data class PomodoroState(
     val treeAtRisk: Boolean = false
 )
 
+/** What the study sound should be doing; sent to [FocusMusicPlayer] on every change. */
+private data class SoundWish(
+    val shouldPlay: Boolean,
+    val source: SoundSource,
+    val fade: Int,
+    val phase: PhaseKey
+)
+
 /** What the floating bubble should be doing right now. */
 private data class OverlayTarget(
     val state: PomodoroState,
@@ -109,6 +117,7 @@ class PomodoroTimerService : Service() {
     @Inject lateinit var summaryStore: com.ogenrwotdaniel.wakeproof.study.SessionSummaryStore
     @Inject lateinit var liveSummaryHold: com.ogenrwotdaniel.wakeproof.data.sync.LiveSummaryHold
     @Inject lateinit var alarmDevicePolicy: com.ogenrwotdaniel.wakeproof.alarm.AlarmDevicePolicy
+    @Inject lateinit var musicLibrary: MusicLibrary
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var tickerJob: Job? = null
@@ -132,6 +141,38 @@ class PomodoroTimerService : Service() {
     private var lastFocusSeconds = 25 * 60
     /** The calendar event this session is for, if any — for the end-of-event check-in. */
     private var event: SessionEvent? = null
+
+    /**
+     * The course the origin of a joined session named, so this device's copy of
+     * each block carries the same course and does not overwrite the origin's
+     * with its own active subject at sync.
+     */
+    private var followedSubject: String? = null
+
+    /** The calendar event the origin of a joined session runs, for the same reason as [followedSubject]. */
+    private var followedEventTitle: String? = null
+
+    /** The course in use: what recall notes and the summary are filed under. Read, not [latestSettings]. */
+    private suspend fun courseSubject(): String =
+        runCatching { settingsRepository.settings.first().activeSubject }.getOrDefault(latestSettings.activeSubject)
+
+    /** What this session's focus blocks are recorded under; see [blockLabels]. The course is read only when needed. */
+    private suspend fun blockLabelsNow(): BlockLabels =
+        blockLabels(event?.title, followedSubject, followedEventTitle, "").let {
+            if (it.subject.isEmpty()) it.copy(subject = courseSubject()) else it
+        }
+
+    /**
+     * Reads the settings once, now: a service just (re)started publishes the
+     * session before the collector has run, and a follower (the watch reads the
+     * subject only when it joins) would keep that default for the whole session.
+     */
+    private suspend fun loadSettingsNow() {
+        runCatching { settingsRepository.settings.first() }.getOrNull()?.let {
+            latestSettings = it
+            settingsLoaded = true
+        }
+    }
     private var shortBreakSeconds = 5 * 60
     private var longBreakSeconds = 15 * 60
     /** A long break after every this-many focus blocks; set per session. */
@@ -144,37 +185,40 @@ class PomodoroTimerService : Service() {
         }
     /** Where this session started: here ([SharedSession.ORIGIN_SELF]), the watch or another install. */
     private var sessionOrigin = SharedSession.ORIGIN_SELF
-    private var musicPlayer: MediaPlayer? = null
-    private var musicFocusRequest: AudioFocusRequest? = null
-    private var currentSound: FocusSound? = null
-    /** Volume ramp in flight; cancelled whenever the target volume changes. */
-    private var fadeJob: Job? = null
-    /** MediaPlayer has no getVolume, so the ramp tracks where it left off. */
-    private var musicVolume = 0f
+    /** The study sound; all its work runs on its own thread. See [FocusMusicPlayer]. */
+    private val music by lazy {
+        FocusMusicPlayer(applicationContext, musicLibrary) { _nowPlaying.value = it }
+    }
+    /** The collector that drives [music]; cancelled first in [onDestroy]. */
+    private var soundJob: Job? = null
     /** Latest settings, so the ticker can consult them without suspending. */
-    private var latestSettings = WakeProofSettings()
+    @Volatile private var latestSettings = WakeProofSettings()
+
+    /** False until [latestSettings] holds a real reading: before that its subject is only the default. */
+    @Volatile private var settingsLoaded = false
     /** Short-lived player for the transition chime; released on completion. */
     private var chimePlayer: MediaPlayer? = null
     private val overlay by lazy { FloatingTimerOverlay(this) }
 
     override fun onCreate() {
         super.onCreate()
-        // Ambient sound rides the timer: focus and break phases each have their
-        // own toggle, and switching the selected sound swaps the loop live.
-        scope.launch { settingsRepository.settings.collect { latestSettings = it } }
+        // Sound rides the timer: focus and break phases each have their own
+        // toggle, and switching the source (a loop, or the user's own music)
+        // swaps it live.
         scope.launch {
-            combine(state, settingsRepository.settings) { s, cfg ->
-                val sound = FocusSound.fromId(cfg.focusSoundId)
-                Triple(soundWanted(s, cfg), sound, cfg.soundFadeSeconds)
-            }.distinctUntilChanged().collect { (shouldPlay, sound, fade) ->
-                if (sound != currentSound) {
-                    fadeJob?.cancel()
-                    musicPlayer?.release()
-                    musicPlayer = null
-                    musicVolume = 0f
-                    currentSound = sound
-                }
-                if (shouldPlay) startMusic(sound, fade) else pauseMusic(fade)
+            settingsRepository.settings.collect {
+                latestSettings = it
+                settingsLoaded = true
+            }
+        }
+        soundJob = scope.launch {
+            combine(state, settingsRepository.settings, musicLibrary.generation) { s, cfg, generation ->
+                val source = soundSourceFor(cfg.focusSoundId, cfg.musicSelection, cfg.musicShuffle, generation)
+                // The phase rides along so a phase turning always reaches the
+                // player, even when both phases want sound.
+                SoundWish(soundWanted(s, cfg), source, cfg.soundFadeSeconds, s.phaseKey())
+            }.distinctUntilChanged().collect { wish ->
+                music.want(wish.shouldPlay, wish.source, wish.fade, wish.phase)
             }
         }
 
@@ -229,8 +273,7 @@ class PomodoroTimerService : Service() {
 
     /**
      * Whether the phase the timer sits in wants sound at all — each phase has its
-     * own toggle, and a paused or stopped timer is always silent. Shared by the
-     * bundled loops and Spotify so exactly one of them can ever be playing.
+     * own toggle, and no sound plays before a session starts or after it ends.
      */
     private fun soundWanted(s: PomodoroState, cfg: WakeProofSettings) =
         s.active && s.running &&
@@ -266,6 +309,8 @@ class PomodoroTimerService : Service() {
                         return@launch
                     }
                     val settings = settingsRepository.settings.first()
+                    latestSettings = settings
+                    settingsLoaded = true
                     // A "1 h" session with 25+5 settings = 2 focus blocks; "2 h" = 4;
                     // "3 h" is its own fixed recipe. See sessionPlan. A calendar
                     // event's session lasts exactly as long as the event.
@@ -283,6 +328,9 @@ class PomodoroTimerService : Service() {
                     sessionId = java.util.UUID.randomUUID().toString()
                     sessionOrigin = SharedSession.ORIGIN_SELF
                     event = startedFor
+                    // A session this device starts follows nobody.
+                    followedSubject = null
+                    followedEventTitle = null
                     SessionEventStore.save(this@PomodoroTimerService, startedFor)
                     val first = blockSeconds(1, plan.focusBlocks)
                     _state.value = PomodoroState(
@@ -347,6 +395,10 @@ class PomodoroTimerService : Service() {
                 syncWatch()
             }
             ACTION_STOP -> if (!_state.value.active) stopSelf()
+            // Skipping a song never touches the session. Ignored without a session, never a stopSelf: a start, join or
+            // restore may still be on its way to making the session active.
+            ACTION_MUSIC_NEXT, ACTION_MUSIC_PREVIOUS ->
+                if (_state.value.active) music.skip(if (intent.action == ACTION_MUSIC_NEXT) +1 else -1)
         }
         return START_NOT_STICKY
     }
@@ -357,20 +409,13 @@ class PomodoroTimerService : Service() {
         // that is cancelled immediately below.
         CoroutineScope(Dispatchers.IO).launch { runCatching { wearTimerSync.clear() } }
         scope.cancel()
+        _nowPlaying.value = null
         clearTreeWarning()
         overlay.hide()
-        // Stopping shouldn't cut the loop dead either, but [scope] is cancelled
-        // above — hand the player to a detached ramp that releases it when done.
-        val dying = musicPlayer
-        val fade = latestSettings.soundFadeSeconds
-        musicPlayer = null
-        if (dying != null) {
-            CoroutineScope(Dispatchers.Default).launch {
-                runCatching { ramp(dying, 0f, fade) }
-                runCatching { dying.release() }
-            }
-        }
-        abandonMusicFocus()
+        // Stopping shouldn't cut the sound dead either: the player fades it
+        // out on its own thread, releases it, and then ends that thread.
+        soundJob?.cancel()
+        music.shutDown(latestSettings.soundFadeSeconds)
         // The session-complete chime starts just before stopSelf; releasing it
         // here would cut it off. It releases itself on completion or error, and
         // this late release (a no-op after those) catches one that never got there.
@@ -382,98 +427,6 @@ class PomodoroTimerService : Service() {
         runningSessionId = ""
         super.onDestroy()
     }
-
-    /**
-     * Loudness the loop settles at once faded in.
-     *
-     * One number for every sound: the loops are levelled to a matched loudness
-     * when they are generated (see `tools/sounds/README.md`), so there is
-     * nothing left here to trim per sound.
-     */
-    private fun peakVolumeOf(@Suppress("UNUSED_PARAMETER") sound: FocusSound) = MUSIC_VOLUME
-
-    private fun MediaPlayer.applyVolume(v: Float) {
-        musicVolume = v
-        setVolume(v, v)
-    }
-
-    /**
-     * Walks the loop's volume to [to] over [seconds], on a curve rather than a
-     * straight line: the ear hears loudness roughly logarithmically, so a linear
-     * amplitude ramp sounds like it jumps at the quiet end and crawls at the loud
-     * one. Squaring the progress spends more of the ramp down low, which is what
-     * reads as a smooth fade.
-     */
-    private suspend fun ramp(player: MediaPlayer, to: Float, seconds: Int) {
-        val from = musicVolume
-        // A ramp that has nowhere to go is done immediately. The tolerance
-        // matters at the phase boundary: the pre-rolled fade-out has already
-        // walked the volume to within a rounding error of silence, and the
-        // boundary then asks for the same fade again. Comparing exactly, that
-        // second request spends the whole fade length crawling from 0.0001 to
-        // 0 — inaudible, but it holds the player open for a minute after the
-        // sound has gone, and at a 60 s fade that is most of a break.
-        if (seconds <= 0 || kotlin.math.abs(from - to) < 0.001f) {
-            runCatching { player.applyVolume(to) }
-            return
-        }
-        val steps = seconds * FADE_STEPS_PER_SECOND
-        val stepMillis = 1000L / FADE_STEPS_PER_SECOND
-        for (step in 1..steps) {
-            delay(stepMillis)
-            val progress = step.toFloat() / steps
-            val eased =
-                if (to > from) progress * progress
-                else 1f - (1f - progress) * (1f - progress)
-            runCatching { player.applyVolume(from + (to - from) * eased) }
-        }
-    }
-
-    private fun startMusic(sound: FocusSound, fadeSeconds: Int) {
-        runCatching {
-            if (!requestMusicFocus()) return@runCatching
-            val player = musicPlayer ?: createLoopPlayer(sound)?.also { musicPlayer = it } ?: run {
-                abandonMusicFocus()
-                return@runCatching
-            }
-            val peak = peakVolumeOf(sound)
-            fadeJob?.cancel()
-            if (!player.isPlaying) {
-                // Start from silence so the loop arrives under you rather than
-                // snapping on at full level the instant the phase flips.
-                player.applyVolume(if (fadeSeconds > 0) 0f else peak)
-                player.start()
-            }
-            fadeJob = scope.launch { ramp(player, peak, fadeSeconds) }
-        }
-    }
-
-    private fun requestMusicFocus(): Boolean {
-        if (musicFocusRequest != null) return true
-        val request = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
-            .setAudioAttributes(MUSIC_AUDIO_ATTRIBUTES)
-            .setWillPauseWhenDucked(true)
-            .setOnAudioFocusChangeListener { }
-            .build()
-        val manager = getSystemService(AudioManager::class.java)
-        if (manager.requestAudioFocus(request) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) return false
-        musicFocusRequest = request
-        return true
-    }
-
-    private fun abandonMusicFocus() {
-        musicFocusRequest?.let { request ->
-            getSystemService(AudioManager::class.java).abandonAudioFocusRequest(request)
-            musicFocusRequest = null
-        }
-    }
-
-    private fun createLoopPlayer(sound: FocusSound): MediaPlayer? =
-        MediaPlayer.create(
-            this, sound.res, // seamless ambient loop, generated asset
-            MUSIC_AUDIO_ATTRIBUTES,
-            0
-        )?.apply { isLooping = true }
 
     /**
      * Watches the foreground app for the length of a focus block. See the
@@ -532,6 +485,7 @@ class PomodoroTimerService : Service() {
             // Unknown decides nothing, so a running away timer is not reset by it either.
             if (essentials == null) continue
             val allowed = current == null || current in essentials ||
+                current in com.ogenrwotdaniel.wakeproof.distraction.SCREEN_CAPTURE_PACKAGES ||
                 current in latestSettings.studyApps ||
                 current in com.ogenrwotdaniel.wakeproof.launcher.NAMED_TOOLS ||
                 current in com.ogenrwotdaniel.wakeproof.launcher.SYSTEM_DOCUMENT_PICKERS
@@ -593,22 +547,6 @@ class PomodoroTimerService : Service() {
     }
 
     /**
-     * Eases the loop down to silence and only then pauses it, so resuming later
-     * picks the loop up where it left off instead of restarting the waveform.
-     */
-    private fun pauseMusic(fadeSeconds: Int) {
-        val player = musicPlayer ?: return
-        fadeJob?.cancel()
-        fadeJob = scope.launch {
-            if (runCatching { player.isPlaying }.getOrDefault(false)) {
-                ramp(player, 0f, fadeSeconds)
-                runCatching { player.pause() }
-                abandonMusicFocus()
-            }
-        }
-    }
-
-    /**
      * Begins the fade-out [soundFadeSeconds] *before* the phase ends, so the loop
      * has reached silence by the time the chime lands — a fade that only starts at
      * the boundary bleeds into the next phase. Skipped when the next phase wants
@@ -621,7 +559,6 @@ class PomodoroTimerService : Service() {
         val fade = latestSettings.soundFadeSeconds
         // A crossing rather than an equality: a late tick can step over a value.
         if (fade <= 0 || previousRemaining <= fade || s.remainingSeconds > fade) return
-        if (musicPlayer?.isPlaying != true) return
         val nextPhaseWantsSound = if (s.phase == PomodoroPhase.FOCUS) {
             // A timed session that ends on this block goes quiet for good.
             val done = s.completedFocusSessions + 1
@@ -629,7 +566,9 @@ class PomodoroTimerService : Service() {
         } else {
             latestSettings.focusMusicEnabled
         }
-        if (!nextPhaseWantsSound) pauseMusic(fade)
+        // Checked again on the music thread: if it gets there after the phase
+        // has turned, this fade would silence the next phase instead.
+        if (!nextPhaseWantsSound) music.fadeOutBeforePhaseEnd { fadeOutStillDue(s, _state.value) }
     }
 
     /**
@@ -696,8 +635,7 @@ class PomodoroTimerService : Service() {
         // A session saved by a build without ids is told apart by the minute it ended.
         val key = sessionId.ifBlank { "end-${endedAt / 60_000L}" }
         // Read, not [latestSettings]: after a restart that is still the default.
-        val subject = runCatching { settingsRepository.settings.first().activeSubject }
-            .getOrDefault(latestSettings.activeSubject)
+        val subject = courseSubject()
         val asked = runCatching { summaryStore.ask(key, subject, endedAt) }.getOrDefault(false)
         if (asked) {
             postSummaryNotice(this, endedAt)
@@ -767,7 +705,7 @@ class PomodoroTimerService : Service() {
             if (!current.treeWithered) {
                 runCatching {
                     recallStore.ask(
-                        settingsRepository.settings.first().activeSubject,
+                        courseSubject(),
                         java.time.LocalDate.now().toEpochDay()
                     )
                 }
@@ -858,11 +796,15 @@ class PomodoroTimerService : Service() {
      * one, so the same block finished on the watch or the tablet too is one row.
      */
     private suspend fun logBlock(block: Int, status: CompletionStatus, minutes: Int) {
-        val subject = settingsRepository.settings.first().activeSubject
+        val labels = blockLabelsNow()
         if (sessionId.isBlank()) {
-            completionRepository.log(GoalKind.FOCUS, status, amount = minutes, subject = subject)
+            completionRepository.log(
+                GoalKind.FOCUS, status, amount = minutes, subject = labels.subject, eventTitle = labels.eventTitle
+            )
         } else {
-            completionRepository.logFocusBlock(sharedBlockId(sessionId, block), status, minutes, subject)
+            completionRepository.logFocusBlock(
+                sharedBlockId(sessionId, block), status, minutes, labels.subject, labels.eventTitle
+            )
         }
     }
 
@@ -884,7 +826,10 @@ class PomodoroTimerService : Service() {
             longBreakSeconds = longBreakSeconds,
             longBreakEvery = longBreakEvery,
             lastFocusSeconds = lastFocusSeconds,
-            subject = latestSettings.activeSubject
+            // Never the default subject of a service just restarted: a follower would
+            // record its copy of every block under it, and that copy can win at sync.
+            subject = followedSubject ?: latestSettings.activeSubject.takeIf { settingsLoaded },
+            eventTitle = eventTitleOf(event?.title) ?: followedEventTitle
         )
     }
 
@@ -927,6 +872,12 @@ class PomodoroTimerService : Service() {
         }
         event = null
         SessionEventStore.save(this, null)
+        loadSettingsNow()
+        // A relayed copy's labels are the relaying follower's; the origin's own
+        // next copy supplies the real ones ([realign]).
+        followedSubject = shared.subject?.takeIf { shared.fromOrigin }
+        followedEventTitle = eventTitleOf(shared.eventTitle?.takeIf { shared.fromOrigin })
+        SessionEventStore.saveFollowed(this, followedSubject, followedEventTitle)
         runFrom(shared.toSaved(), now)
         // "Focus on your watch" gives way to this device's own timer notification.
         com.ogenrwotdaniel.wakeproof.wear.WatchSessionNotifier.refresh(applicationContext)
@@ -940,6 +891,19 @@ class PomodoroTimerService : Service() {
         try {
             val s = _state.value
             if (!s.active || !s.running) return
+            // After a restart the joined origin's course and event are learnt again from
+            // its next copy. Only the origin's own copy: a follower's relayed copy carries
+            // that follower's course, which would then be logged as this session's. A
+            // blank label never wipes a known one: an origin on an older build sends none.
+            if (shared.fromOrigin && shared.id == sessionId && sessionOrigin != SharedSession.ORIGIN_SELF) {
+                val subject = shared.subject?.takeIf { it.isNotBlank() } ?: followedSubject
+                val title = eventTitleOf(shared.eventTitle) ?: followedEventTitle
+                if (subject != followedSubject || title != followedEventTitle) {
+                    followedSubject = subject
+                    followedEventTitle = title
+                    SessionEventStore.saveFollowed(this, subject, title)
+                }
+            }
             val now = System.currentTimeMillis()
             val position = sessionPosition(s.phase, s.completedFocusSessions)
             val endsAt = now + (phaseDeadline - SystemClock.elapsedRealtime())
@@ -1008,6 +972,14 @@ class PomodoroTimerService : Service() {
             treeWithered = session.treeWithered
         )
         startTicker(rearm = false)
+        // A realign can give a phase whose end already faded out more time; the
+        // early silence is lifted only if the live timer, read on the music thread,
+        // still has more than the fade length left in that same phase.
+        val extended = _state.value.phaseKey()
+        music.phaseExtended(extended) {
+            val live = _state.value
+            live.phaseKey() == extended && live.remainingSeconds > latestSettings.soundFadeSeconds
+        }
         // A realign inside one phase changes nothing the saving collector watches.
         persistSession()
         updateNotification()
@@ -1032,6 +1004,8 @@ class PomodoroTimerService : Service() {
         SessionStore.clear(this)
         SessionEventStore.save(this, null)
         event = null
+        followedSubject = null
+        followedEventTitle = null
         SessionDnd.exit(this)
         sessionId = ""
         sessionOrigin = SharedSession.ORIGIN_SELF
@@ -1063,8 +1037,14 @@ class PomodoroTimerService : Service() {
 
     /** Picks up a session the process lost; see [recoverSession] for the rules. */
     private suspend fun resumeSaved(saved: SavedSession) {
+        loadSettingsNow()
         val now = System.currentTimeMillis()
         val outcome = recoverSession(saved, now)
+        // First: the withered block and the resumed blocks carry its event, or the
+        // course and event of the session it was following.
+        event = SessionEventStore.load(this)
+        followedSubject = SessionEventStore.loadFollowed(this)
+        followedEventTitle = SessionEventStore.loadFollowedEventTitle(this)
         if (outcome.witheredBlock) {
             // Before [runFrom] sets it: the block is named by the session it was part of.
             sessionId = saved.sessionId
@@ -1089,7 +1069,6 @@ class PomodoroTimerService : Service() {
             stopSelf()
             return
         }
-        event = SessionEventStore.load(this)
         runFrom(resume, now)
         AppBlockService.sync(applicationContext)
         onSessionUnderway()
@@ -1273,6 +1252,21 @@ class PomodoroTimerService : Service() {
         private const val ACTION_STOP = "com.ogenrwotdaniel.wakeproof.action.POMODORO_STOP"
         private const val ACTION_RESTORE = "com.ogenrwotdaniel.wakeproof.action.POMODORO_RESTORE"
         private const val ACTION_JOIN = "com.ogenrwotdaniel.wakeproof.action.POMODORO_JOIN"
+        private const val ACTION_MUSIC_NEXT = "com.ogenrwotdaniel.wakeproof.action.MUSIC_NEXT"
+        private const val ACTION_MUSIC_PREVIOUS = "com.ogenrwotdaniel.wakeproof.action.MUSIC_PREVIOUS"
+
+        private val _nowPlaying = MutableStateFlow<NowPlaying?>(null)
+        /** The song the user's own music is playing, or null (a loop, silence, no session). */
+        val nowPlaying: StateFlow<NowPlaying?> = _nowPlaying.asStateFlow()
+
+        /** Next song in the user's music. Never pauses, stops or skips the session. */
+        fun nextTrack(context: Context) = runCatching {
+            context.startService(intent(context, ACTION_MUSIC_NEXT))
+        }
+        /** Previous song (or the start of this one); never touches the session. */
+        fun previousTrack(context: Context) = runCatching {
+            context.startService(intent(context, ACTION_MUSIC_PREVIOUS))
+        }
         private const val EXTRA_SHARED = "shared_session"
         /**
          * What the watch is told a session started on this phone came from. Not
@@ -1344,21 +1338,6 @@ class PomodoroTimerService : Service() {
          * enough that a "quick look" at a feed does not fit inside it.
          */
         private const val TREE_GRACE_MS = 10_000L
-        /**
-         * Playback level for the bundled loops. Raised from 0.55 when the assets
-         * were regenerated at a matched -14 LUFS: the old set averaged louder in
-         * the file, so holding 0.55 would have made every sound quieter than the
-         * one the user had got used to.
-         */
-        private const val MUSIC_VOLUME = 0.7f
-
-        private val MUSIC_AUDIO_ATTRIBUTES: AudioAttributes = AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_MEDIA)
-            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-            .build()
-
-        /** Ramp resolution. 20 Hz is well under the threshold where steps are audible. */
-        private const val FADE_STEPS_PER_SECOND = 20
         private const val EXTRA_SESSION_MINUTES = "session_minutes"
         private const val EXTRA_EXACT_MINUTES = "exact_minutes"
         private const val EXTRA_EVENT_KEY = "event_key"

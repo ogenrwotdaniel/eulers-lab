@@ -31,6 +31,9 @@
         android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <!-- Optional: the user's own music, by album or artist, as the study sound.
+         Not needed for a single folder picked in the system folder browser. -->
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <!-- Do Not Disturb for the length of a focus session (special grant). -->
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
 

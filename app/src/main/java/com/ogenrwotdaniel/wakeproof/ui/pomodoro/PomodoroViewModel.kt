@@ -13,6 +13,16 @@ import com.ogenrwotdaniel.wakeproof.data.WakeProofSettings
 import com.ogenrwotdaniel.wakeproof.data.db.ParkedThought
 import com.ogenrwotdaniel.wakeproof.data.db.ParkedThoughtDao
 import com.ogenrwotdaniel.wakeproof.data.remote.ApiKeyStore
+import com.ogenrwotdaniel.wakeproof.music.LibraryScanKey
+import com.ogenrwotdaniel.wakeproof.music.MusicGroup
+import com.ogenrwotdaniel.wakeproof.music.MusicLibrary
+import com.ogenrwotdaniel.wakeproof.music.MusicSelection
+import com.ogenrwotdaniel.wakeproof.music.NowPlaying
+import com.ogenrwotdaniel.wakeproof.music.Track
+import com.ogenrwotdaniel.wakeproof.music.groupsOf
+import com.ogenrwotdaniel.wakeproof.music.needsMediaStoreScan
+import com.ogenrwotdaniel.wakeproof.music.needsRescan
+import com.ogenrwotdaniel.wakeproof.music.select
 import com.ogenrwotdaniel.wakeproof.pomodoro.PomodoroState
 import com.ogenrwotdaniel.wakeproof.pomodoro.PomodoroTimerService
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,6 +30,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -45,8 +56,126 @@ class PomodoroViewModel @Inject constructor(
     private val parkedThoughtDao: ParkedThoughtDao,
     private val recallStore: RecallStore,
     private val summaryStore: SessionSummaryStore,
+    private val musicLibrary: MusicLibrary,
     keyStore: ApiKeyStore
 ) : ViewModel() {
+
+    /** What the user's own music holds, grouped for the picker. Loaded on demand. */
+    data class LibraryState(
+        val hasPermission: Boolean = false,
+        val loaded: Boolean = false,
+        val tracks: List<Track> = emptyList(),
+        val folders: List<MusicGroup> = emptyList(),
+        val albums: List<MusicGroup> = emptyList(),
+        val artists: List<MusicGroup> = emptyList(),
+        /** "Music/Study" and its song count, when the selection is a picked folder. */
+        val pickedFolderLabel: String? = null,
+        val pickedFolderCount: Int? = null,
+        /** Whether [tracks] holds the whole list; false while only a picked folder was read. */
+        val allLoaded: Boolean = false
+    ) {
+        fun countFor(selection: MusicSelection): Int = tracks.select(selection).size
+    }
+
+    private val _library = MutableStateFlow(LibraryState(hasPermission = musicLibrary.hasPermission()))
+    val library: StateFlow<LibraryState> = _library
+
+    /** The song in progress when the study sound is the user's own music. */
+    val nowPlaying: StateFlow<NowPlaying?> = PomodoroTimerService.nowPlaying
+
+    private var libraryJob: kotlinx.coroutines.Job? = null
+    private var pickerScanRunning = false
+    /** What the last finished scan was for; a rescan happens only when it changes. */
+    private var lastScan: LibraryScanKey? = null
+
+    private val _libraryMessage = MutableStateFlow<String?>(null)
+    /** A problem with the user's last music choice, shown under the controls. */
+    val libraryMessage: StateFlow<String?> = _libraryMessage
+
+    /**
+     * Reads the library when what it depends on (the selection, the media
+     * permission) changed since the last scan, or when [force]d. The previous
+     * read is cancelled first, so an older, slower scan can never land on top of
+     * a newer one.
+     */
+    fun loadLibrary(force: Boolean = false, pickerOpen: Boolean = false) {
+        // The screen resuming right after the permission dialog asks for a plain
+        // load; cancelling the picker's whole-library read for it would leave
+        // the picker reading forever.
+        if (!force && !pickerOpen && pickerScanRunning && libraryJob?.isActive == true) return
+        libraryJob?.cancel()
+        pickerScanRunning = pickerOpen
+        libraryJob = viewModelScope.launch {
+            // The media permission came or went (the dialog, or App info): a
+            // running session retries its music instead of keeping the fallback
+            // loop. Decided in the library singleton, once, whichever screen asks.
+            musicLibrary.noticeAccessChange()
+            val selection = settingsRepository.settings.first().musicSelection
+            val decoded = MusicSelection.decode(selection)
+            val granted = musicLibrary.hasPermission()
+            val scanAll = needsMediaStoreScan(decoded, pickerOpen)
+            val key = LibraryScanKey(selection, granted, includesAll = scanAll)
+            if (!needsRescan(lastScan, key, force)) return@launch
+            val tracks = if (scanAll) musicLibrary.tracks() else emptyList()
+            val (folders, albums, artists) = groupsOf(tracks)
+            val picked = decoded as? MusicSelection.PickedFolder
+            _library.value = LibraryState(
+                hasPermission = granted,
+                loaded = true,
+                allLoaded = scanAll,
+                tracks = tracks,
+                folders = folders,
+                albums = albums,
+                artists = artists,
+                pickedFolderLabel = picked?.let { musicLibrary.folderLabel(it.treeUri) },
+                pickedFolderCount = picked?.let { musicLibrary.folderTracks(it.treeUri).size }
+            )
+            lastScan = key
+        }
+    }
+
+    /** A folder came back from the system folder browser: keep access to it and play it. */
+    fun onFolderPicked(treeUri: android.net.Uri) {
+        viewModelScope.launch {
+            val previousEncoded = settingsRepository.settings.first().musicSelection
+            val previous = MusicSelection.decode(previousEncoded)
+            if (!musicLibrary.keepFolder(treeUri)) {
+                _libraryMessage.value = "Euler's Lab could not keep access to that folder, so " +
+                    "nothing changed. Try picking it again, or a folder inside it."
+                return@launch
+            }
+            _libraryMessage.value = null
+            val picked = MusicSelection.PickedFolder(treeUri.toString()).encode()
+            settingsRepository.setMusicSelection(picked)
+            // Only now, with the new folder saved, let the old one go.
+            if (previous is MusicSelection.PickedFolder && previous.encode() != picked) {
+                musicLibrary.releaseFolder(previous)
+            }
+            // The same folder picked again (its access was lost): the selection
+            // is unchanged, so only this tells a running session to retry it.
+            if (picked == previousEncoded) musicLibrary.invalidate()
+            loadLibrary(force = true)
+        }
+    }
+
+    fun setMusicSelection(selection: MusicSelection) {
+        viewModelScope.launch {
+            val previous = MusicSelection.decode(settingsRepository.settings.first().musicSelection)
+            _libraryMessage.value = null
+            // Saved first: if the save fails the old folder keeps its grant, and
+            // a running session keeps reading it until the new choice reaches it.
+            settingsRepository.setMusicSelection(selection.encode())
+            // Leaving a picked folder for an album or artist lets its grant go too.
+            if (previous is MusicSelection.PickedFolder && selection != previous) {
+                musicLibrary.releaseFolder(previous)
+            }
+            loadLibrary()
+        }
+    }
+
+    fun setMusicShuffle(value: Boolean) {
+        viewModelScope.launch { settingsRepository.setMusicShuffle(value) }
+    }
 
     /** Euler's Adversaria (open conjectures) and distracting thoughts captured mid-focus, oldest done last. */
     val thoughts: StateFlow<List<ParkedThought>> = parkedThoughtDao.observeAll()

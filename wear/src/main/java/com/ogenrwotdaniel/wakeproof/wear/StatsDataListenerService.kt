@@ -66,6 +66,8 @@ class StatsDataListenerService : WearableListenerService() {
             }
         }
         dataEvents.release()
+        // The walls read the phone's summary hold, exam week and timer: read them again now.
+        if (refreshTile || timerChanged) com.ogenrwotdaniel.wakeproof.wear.walls.WatchWallState.markPhoneStale()
 
         if (refreshTile) {
             TileService.getUpdater(this).requestUpdate(StatsTileService::class.java)

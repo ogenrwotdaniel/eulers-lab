@@ -39,7 +39,11 @@ object UninstallLock {
         context.getSystemService(DevicePolicyManager::class.java).isAdminActive(component(context))
     }.getOrDefault(false)
 
-    /** Releases active-admin status from inside our own UID so `adb shell cmd package uninstall -k` succeeds. */
+    /**
+     * Releases active-admin status from inside our own UID, so that
+     * `pm uninstall -k` succeeds: `dpm remove-active-admin` is refused for an
+     * admin that is not test-only. Called by the debug-only `ReleaseAdminReceiver`.
+     */
     fun releaseAdmin(context: Context) {
         runCatching {
             context.getSystemService(DevicePolicyManager::class.java)

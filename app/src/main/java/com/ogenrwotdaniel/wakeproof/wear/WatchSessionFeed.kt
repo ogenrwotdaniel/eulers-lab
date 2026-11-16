@@ -64,7 +64,8 @@ object WatchSessionFeed {
             shortBreakMinutes = map.getInt(WearContract.KEY_WS_SHORT_MIN, 0),
             longBreakMinutes = map.getInt(WearContract.KEY_WS_LONG_MIN, 0),
             longBreakEvery = map.getInt(WearContract.KEY_WS_LONG_EVERY, 0),
-            lastFocusSeconds = map.getInt(WearContract.KEY_WS_LAST_FOCUS_SEC, 0)
+            lastFocusSeconds = map.getInt(WearContract.KEY_WS_LAST_FOCUS_SEC, 0),
+            eventTitle = map.getString(WearEventKeys.KEY_WS_EVENT_TITLE)?.takeIf { it.isNotBlank() }
         )
     }
 

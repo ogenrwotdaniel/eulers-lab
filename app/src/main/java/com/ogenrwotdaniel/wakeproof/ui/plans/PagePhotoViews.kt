@@ -69,7 +69,7 @@ internal fun pageCaption(photo: PagePhoto): String {
 
 @Composable
 internal fun PhotoThumbnail(photo: PagePhoto, note: String?, openLabel: String, onOpen: () -> Unit) {
-    val bitmap by produceState<Bitmap?>(initialValue = null, photo.file) {
+    val bitmap by produceState<Bitmap?>(initialValue = null, photo.file, photo.version) {
         value = loadPageBitmap(photo.file, THUMBNAIL_SIDE)
     }
     Column(
@@ -109,10 +109,19 @@ internal fun PhotoThumbnail(photo: PagePhoto, note: String?, openLabel: String, 
     }
 }
 
-/** One photographed page ([what], e.g. "Session summary"), full screen: pinch to zoom, drag to move. */
+/**
+ * One photographed page ([what], e.g. "Session summary"), full screen: pinch
+ * to zoom, drag to move. [onRetake], when given, offers taking it again.
+ */
 @Composable
-internal fun PhotoViewer(photo: PagePhoto, what: String, onClose: () -> Unit, onDelete: () -> Unit) {
-    val bitmap by produceState<Bitmap?>(initialValue = null, photo.file) {
+internal fun PhotoViewer(
+    photo: PagePhoto,
+    what: String,
+    onClose: () -> Unit,
+    onDelete: () -> Unit,
+    onRetake: (() -> Unit)? = null
+) {
+    val bitmap by produceState<Bitmap?>(initialValue = null, photo.file, photo.version) {
         value = loadPageBitmap(photo.file, FULL_SIDE)
     }
     var zoom by remember { mutableFloatStateOf(1f) }
@@ -176,6 +185,9 @@ internal fun PhotoViewer(photo: PagePhoto, what: String, onClose: () -> Unit, on
             ) {
                 OutlinedButton(onClick = { confirmingDelete = true }, modifier = Modifier.weight(1f)) {
                     Text("Delete")
+                }
+                onRetake?.let { retake ->
+                    OutlinedButton(onClick = retake, modifier = Modifier.weight(1f)) { Text("Retake") }
                 }
                 Button(onClick = onClose, modifier = Modifier.weight(1f)) { Text("Close") }
             }

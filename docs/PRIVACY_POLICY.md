@@ -1,6 +1,6 @@
 # WakeProof Privacy Policy
 
-**Effective date:** 13 November 2026
+**Effective date:** 15 November 2026
 **Developer:** Ogenrwot Daniel
 **Contact:** ogenrwotdaniel@gmail.com
 
@@ -27,7 +27,7 @@ app:
   app from opening for the rest of the day, whichever you chose for that app.
   The same on-device check enforces your schedule walls over social, video,
   messaging, portal and browser apps (for example opening only during your
-  Monday–Thursday morning window and staying shut Friday through Sunday) and
+  Saturday–Sunday 14:00–16:00 window and staying shut Monday through Friday) and
   keeps apps outside your focus list shut while a focus session runs. These
   statistics are processed on-device only.
 - **Your installed apps.** WakeProof reads the list of apps installed on your
@@ -39,8 +39,8 @@ app:
   anywhere.
 - **Notifications from apps you have walled.** With your permission
   (Notification access), WakeProof removes notifications posted by an app
-  while one of your walls keeps it shut — outside your Monday–Thursday open
-  window, on Friday through Sunday, during a focus session, at bedtime, or once
+  while one of your walls keeps it shut — outside your Saturday–Sunday open
+  window, on Monday through Friday, during a focus session, at bedtime, or once
   its daily limit is spent. It looks only at which app posted a notification,
   never at its content, and stores and sends nothing. The same access lets it
   pause media that a walled app is still playing (for example a video left in
@@ -50,7 +50,11 @@ app:
   times from your device calendar to show your agenda — in the app, and on the
   WakeProof home screen if you use it — to remind you five minutes before an
   event, and to time a focus session to an event's length. It never modifies your
-  calendar and never transmits calendar data.
+  calendar. When you start a focus session from an event, that event's title
+  (cut to 80 characters) is kept with the session's focus blocks, so you can see
+  and export where your study time went. It is shared with your own watch and,
+  with Cloud Sync on, synced to your own devices like the rest of your
+  completion history. Nothing else from your calendar leaves the device.
 - **Pushup verification video.** The camera feed used to count pushups is
   processed entirely on-device (Google ML Kit pose detection). No video or
   image from pushup verification is stored or transmitted.
@@ -76,6 +80,17 @@ app:
   WakeProof's private storage on that device. They are not synced. They are
   included in the JSON backup file you can export yourself. A recall note is
   sent to Google Gemini only if you tap "Draft with AI" on it.
+- **Your music.** If you choose "My music" as the study sound, WakeProof
+  reads music files stored on your phone and plays them inside the app during
+  focus sessions. You can give it one folder through Android's folder picker
+  (it can then read that folder and its subfolders and nothing else), or allow
+  access to the music on your device to choose by album or artist. It reads
+  song files and their title and artist tags only to play them and show what
+  is playing. It never uploads, copies, changes or deletes your music, and
+  never sends song names anywhere; your choice of folder, album or artist is
+  kept on the device only. No other music app is opened. You can withdraw
+  access at any time in Android Settings → Apps → WakeProof → Permissions, or
+  by picking a different folder.
 - **Night screen use.** For the sleep score WakeProof reads, from the same
   Usage access, when the screen was on between 20:00 and 03:00. It is worked
   out on the device each time and sent nowhere.
@@ -95,12 +110,14 @@ under Settings → Sync across devices, and stops when you sign out.
   account identifier, email address and display name, and uses them for one
   purpose: to know which private storage area is yours. There is no profile, no
   public presence, and no way for another user to find you.
-- **What is synced:** your alarms, your completion history and streak, your
+- **What is synced:** your alarms, your completion history and streak (with the
+  title of the calendar event a focus session was started from, if any), your
   flashcards and their review schedule, your exams, your parked thoughts, your
   daily focus goal and study-app focus list, and (when you pair WakeProof Clip)
   end-to-end encrypted clipboard items between your own devices.
 - **What is *not* synced:** your Gemini API key, your full screen-time
-  statistics, and your calendar data.
+  statistics, and your calendar (apart from the event titles of focus sessions
+  started from an event, as above).
 - **Where it is stored:** Google Firebase (Firestore and Firebase
   Authentication), operated by Google LLC, in a private area readable only by
   your signed-in account. See <https://firebase.google.com/support/privacy> and
@@ -158,7 +175,9 @@ internet requests at all**.
 | Display over other apps (special) | The floating Pomodoro timer bubble, the block and focus-session screens shown over other apps, opening the alarm screen while you use other apps, and covering an app left open in a pop-up window while it is walled |
 | Do Not Disturb access (special) | Turning on Do Not Disturb (priority mode) for a focus session, on every device the session walls, and restoring it afterwards |
 | Notification access (special) | Removing notifications from apps while a wall keeps them shut, and pausing media a walled app is still playing; only the app and whether it is playing are looked at, never the content |
-| Calendar (read) | Showing your agenda so you can tick events off, event reminders, focus sessions timed to an event |
+| Calendar (read) | Showing your agenda so you can tick events off, event reminders, focus sessions timed to an event (recorded under the event's title) |
+| Watch: usage access, display over other apps, notification access, list of installed apps | On the Wear OS watch only: seeing which app is in front, showing the wall screen over a gated app, and removing a gated app's notifications while it is shut. Nothing is stored or sent |
+| Music and audio (read, optional) | Choosing your own music by album or artist as the study sound, played on the device. Not needed if you pick a single music folder instead |
 | Home app (role, optional) | Only if you choose WakeProof as your home screen in Settings; switch back any time in Android's default-apps settings |
 | Internet | Only for the optional cloud sync and Gemini AI features above |
 
@@ -192,6 +211,17 @@ personal information from children.
 ## Changes to this policy
 
 Material changes will be posted at this URL with an updated effective date.
+
+**15 November 2026** — updated the gated-app schedule examples to the current
+walls (open Saturday and Sunday 14:00–16:00, shut Monday through Friday).
+Later the same day: a focus session started from a calendar event now records
+the event's title beside its course, synced and exported with your completion
+history; and the watch app gained its own walls for gated apps, which read the
+app in front, cover it with a wall screen and remove its notifications, all on
+the watch. Also brought back playing your own music as the study sound, inside
+the app: WakeProof reads the music files in a folder you pick, or in your
+music library if you allow music and audio access, only to play them on the
+device, and uploads nothing.
 
 **13 November 2026** — added session-summary photos, taken after a
 focus session and stored on the device only; removed the day-plan alarm and

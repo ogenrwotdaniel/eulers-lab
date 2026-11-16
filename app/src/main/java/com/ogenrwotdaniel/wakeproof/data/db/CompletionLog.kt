@@ -42,6 +42,13 @@ data class CompletionLog(
     val alarmId: Long? = null,
     /** Study subject for FOCUS entries ("Calculus"); null for other kinds. */
     val subject: String? = null,
+    /**
+     * The calendar event a FOCUS block ran for (2026-11-15), its title cut to
+     * `EVENT_TITLE_MAX_CHARS`; null for any other block or kind. Kept apart
+     * from [subject] so course totals still count event sessions under their
+     * course while the weekly export can also say which event the time went to.
+     */
+    val eventTitle: String? = null,
     @ColumnInfo(defaultValue = "''")
     override val syncId: String = UUID.randomUUID().toString(),
     @ColumnInfo(defaultValue = "0")

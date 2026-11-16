@@ -52,6 +52,7 @@ fun SummaryCaptureScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val cameraPermission = rememberPermissionState(android.Manifest.permission.CAMERA)
     val done = state.step == SummaryCaptureViewModel.Step.DONE
+    val retake = viewModel.replacing != null
 
     LaunchedEffect(Unit) {
         if (!cameraPermission.status.isGranted) cameraPermission.launchPermissionRequest()
@@ -63,7 +64,8 @@ fun SummaryCaptureScreen(
             if (state.stillOwed) {
                 android.widget.Toast.makeText(
                     toastContext,
-                    "Photo kept. The ten minutes of writing come first: photograph the finished page after them.",
+                    // Rare: a new session's ask landed during the save.
+                    "Photo kept. A new session summary is owed: the focus timer shows when it can be photographed.",
                     android.widget.Toast.LENGTH_LONG
                 ).show()
             }
@@ -82,7 +84,8 @@ fun SummaryCaptureScreen(
             Text(
                 text = when (state.step) {
                     SummaryCaptureViewModel.Step.CAPTURE ->
-                        "Write down everything you learnt this session, then photograph the page"
+                        if (retake) "Photograph the corrected page: it replaces the earlier photo"
+                        else "Write down everything you learnt this session, then photograph the page"
                     SummaryCaptureViewModel.Step.CONFIRM -> "Can you read it? Keep this photo or take it again"
                     SummaryCaptureViewModel.Step.SAVING -> "Saving…"
                     SummaryCaptureViewModel.Step.DONE -> "Summary saved"
@@ -90,10 +93,30 @@ fun SummaryCaptureScreen(
                 style = MaterialTheme.typography.titleLarge,
                 textAlign = TextAlign.Center
             )
-            if (state.saveFailed) {
+            if (state.tooEarly && !done) {
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    text = "The photo could not be saved. Try again.",
+                    text = "Not yet: the ten minutes of writing come first. Try again once they are over.",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center
+                )
+            }
+            if (state.retakeTooLate && !done) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "This photo can no longer be retaken: its time for corrections is over. " +
+                        "The earlier photo is kept as it was.",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center
+                )
+            }
+            if (state.saveFailed && !done) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = if (retake) "The photo could not be saved; the earlier one is unchanged. Try again."
+                    else "The photo could not be saved. Try again.",
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium,
                     textAlign = TextAlign.Center
@@ -110,7 +133,9 @@ fun SummaryCaptureScreen(
                                 onCameraFailed = viewModel::onCameraUnavailable,
                                 cameraFailed = state.cameraFailed,
                                 onRetry = viewModel::retryCamera,
-                                failedHint = "Try it again, or finish without a photo below."
+                                failedHint = if (retake) "Try it again; the earlier photo is kept as it is. " +
+                                    "A summary still owed is finished from the focus timer."
+                                else "Try it again, or finish without a photo below."
                             )
                         } else {
                             Centered {
@@ -140,11 +165,17 @@ fun SummaryCaptureScreen(
                             }
                         }
                         Spacer(Modifier.height(12.dp))
-                        Button(onClick = viewModel::onKeep, modifier = Modifier.fillMaxWidth()) {
+                        Button(
+                            onClick = viewModel::onKeep,
+                            enabled = !state.retakeTooLate,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
                             Text("Keep this photo")
                         }
-                        OutlinedButton(onClick = viewModel::onRetake, modifier = Modifier.fillMaxWidth()) {
-                            Text("Retake")
+                        if (!state.retakeTooLate) {
+                            OutlinedButton(onClick = viewModel::onRetake, modifier = Modifier.fillMaxWidth()) {
+                                Text("Retake")
+                            }
                         }
                     }
 
@@ -153,17 +184,11 @@ fun SummaryCaptureScreen(
                 }
             }
 
-            if (!done && (state.cameraFailed || state.saveFailed || !cameraPermission.status.isGranted)) {
+            // Nothing is owed by a retake, so no way out is needed but "Not yet".
+            if (!done && !retake && (state.cameraFailed || state.saveFailed || !cameraPermission.status.isGranted)) {
                 Spacer(Modifier.height(12.dp))
                 OutlinedButton(onClick = viewModel::finishWithoutPhoto, modifier = Modifier.fillMaxWidth()) {
                     Text("The camera is not working: finish without a photo")
-                }
-                if (state.tooEarly) {
-                    Text(
-                        text = "Not yet: the ten minutes of writing come first.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
                 }
             }
             if (!done) {

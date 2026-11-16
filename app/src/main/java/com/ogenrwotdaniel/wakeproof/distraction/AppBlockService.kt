@@ -73,10 +73,9 @@ import java.time.LocalTime
  * * [LimitMode.BLOCK] caps — once an app's daily allowance is spent,
  *   [BlockedActivity] is thrown in front of it until midnight (or next open
  *   window for gated apps). No override.
- * * The [WallRules] in front of gated apps ([AppGate]): open only Monday to
- *   Thursday inside the open window (08:20–08:50 by default) with no countdown
- *   wait or separate daily budget, completely shut Friday through Sunday, shut
- *   at bedtime, and shut until the day's first focus block when no window is set.
+ * * The [WallRules] in front of gated apps ([AppGate]): completely shut Monday
+ *   through Friday, open Saturday and Sunday only inside the 14:00–16:00 window
+ *   with no countdown wait or separate daily budget, and shut at bedtime.
  *
  * Losing either grant ends enforcement, so it is announced loudly and repeatedly
  * ([announceWallDown], [sync]) and, mid-session, costs the block's tree.
@@ -109,6 +108,7 @@ class AppBlockService : Service() {
     @Inject lateinit var alarmDevicePolicy: com.ogenrwotdaniel.wakeproof.alarm.AlarmDevicePolicy
     @Inject lateinit var summaryStore: com.ogenrwotdaniel.wakeproof.study.SessionSummaryStore
     @Inject lateinit var liveSummaryHold: com.ogenrwotdaniel.wakeproof.data.sync.LiveSummaryHold
+    @Inject lateinit var wearStatsSync: com.ogenrwotdaniel.wakeproof.wear.WearStatsSync
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
@@ -223,7 +223,7 @@ class AppBlockService : Service() {
 
     /**
      * The local clock cannot be believed ([clockUntrusted]). Every wall reads it,
-     * so a hand-set one could put the phone inside 08:20-08:50, or outside the
+     * so a hand-set one could put the phone inside the weekend 14:00-16:00 window, or outside the
      * night, or past a session's end, at will.
      */
     @Volatile private var clockDoubted = false
@@ -420,6 +420,7 @@ class AppBlockService : Service() {
                     if (seenAt == null) null to emptyMap() else heldSet to seenAt
                 }
                 val held = heldRead.orEmpty()
+                val examWeekBefore = examWeek
                 examWeek = try {
                     val rows = examDao.observeUpcoming(today).first()
                         .map { ExamRow(it.syncId, it.name, it.epochDay, it.updatedAt) }
@@ -471,6 +472,9 @@ class AppBlockService : Service() {
                     // from an exam not yet held.
                     examWeekHeld(emptyList(), held + listOfNotNull(examWeek?.takeIf { it.epochDay >= today }), today)
                 }
+                // The watch walls its gated apps through exam week too (`exam_shut_until`
+                // on /wakeproof/stats): tell it as soon as the week begins, moves or lifts.
+                if (examWeek != examWeekBefore) launch { runCatching { wearStatsSync.push() } }
                 delay(EXAM_WEEK_REFRESH_MILLIS)
             }
         }
@@ -838,7 +842,8 @@ class AppBlockService : Service() {
             // (2026-11-04, "once focus starts you can't run away"): it is where
             // grants, defaults and the date live. Calls, the home screen and
             // the quick-settings shade stay usable.
-            essential = current in untouchable &&
+            // Samsung's capture overlay is never walled (SCREEN_CAPTURE_PACKAGES).
+            essential = (current in untouchable || current in SCREEN_CAPTURE_PACKAGES) &&
                 !(current in FOCUS_WALLED_ESSENTIALS && anySessionActive()),
             focusSessionActive = anySessionActive(),
             // Never for a notification: a removed one is lost for good, and the
@@ -1115,7 +1120,7 @@ class AppBlockService : Service() {
         return true
     }
 
-    /** Next opening phrase after today for [current] if gated (`"tomorrow at 08:20"`, `"Monday at 08:20"`). */
+    /** Next opening phrase after today for [current] if gated (`"tomorrow at 14:00"`, `"Saturday at 14:00"`). */
     private fun nextOpenFor(current: String, today: java.time.DayOfWeek): String? {
         // Exam week shuts gated apps all day until the exam is over.
         examWeek?.takeIf { gatedCache[current] == true }?.let { exam ->
@@ -1897,6 +1902,23 @@ class AppBlockService : Service() {
 
         /** Whether the foreground wall service is currently running. */
         fun isRunning(): Boolean = instance != null
+
+        /**
+         * The exam week this service holds now (null on an ordinary day), and whether
+         * it is running to know. Read by `WearStatsSync` for the watch's walls.
+         */
+        fun examWeekNow(): Pair<Boolean, ExamWeek?> = instance.let { (it != null) to it?.examWeek }
+
+        /**
+         * The held exam weeks as stored, for a reader while the service is not running.
+         * Null when unreadable. Read only: the service alone writes them.
+         */
+        fun storedExamHolds(context: Context): Set<ExamWeek>? = runCatching {
+            context.createDeviceProtectedStorageContext()
+                .getSharedPreferences(NIGHT_PREFS, Context.MODE_PRIVATE)
+                .getStringSet(KEY_EXAMS_HELD, emptySet()).orEmpty()
+                .mapNotNullTo(mutableSetOf()) { decodeHeldExam(it) }
+        }.getOrNull()
 
         /**
          * Whether [packageName] is walled right now; null when the service is

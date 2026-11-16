@@ -39,4 +39,21 @@ class WatchSessionImportTest {
     fun `a blank subject reads as untagged`() {
         assertNull(WatchSessionImport.accept("id", today, 25, "", today)!!.subject)
     }
+
+    @Test
+    fun `a block keeps its event title beside the course, cut and blank as none`() {
+        val block = WatchSessionImport.accept("id", today, 25, "Materials", today, eventTitle = " Graphene seminar ")!!
+        assertEquals("Materials", block.subject)
+        assertEquals("Graphene seminar", block.eventTitle)
+        assertNull(WatchSessionImport.accept("id", today, 25, null, today, eventTitle = " ")!!.eventTitle)
+        assertEquals(80, WatchSessionImport.accept("id", today, 25, null, today, eventTitle = "z".repeat(200))!!.eventTitle!!.length)
+    }
+
+    @Test
+    fun `the event keys match the watch's`() {
+        // Hand-kept contract: wear TimerContract, WatchSessionContract, SessionContract.
+        assertEquals("t_event_title", WearEventKeys.KEY_TIMER_EVENT_TITLE)
+        assertEquals("ws_event_title", WearEventKeys.KEY_WS_EVENT_TITLE)
+        assertEquals("s_event_title", WearEventKeys.KEY_SESSION_EVENT_TITLE)
+    }
 }

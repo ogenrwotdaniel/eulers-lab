@@ -14,7 +14,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         Exam::class,
         ParkedThought::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class WakeProofDatabase : RoomDatabase() {
@@ -87,6 +87,17 @@ abstract class WakeProofDatabase : RoomDatabase() {
                 db.execSQL(
                     "ALTER TABLE `alarms` ADD COLUMN `daysMask` INTEGER NOT NULL DEFAULT 127"
                 )
+            }
+        }
+
+        /**
+         * v6 (2026-11-15): focus logs gain the calendar event a block ran for,
+         * beside its course, so a week's time can be exported by event as well
+         * as by course. Nullable, so every existing row reads as "no event".
+         */
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `completion_logs` ADD COLUMN `eventTitle` TEXT")
             }
         }
 

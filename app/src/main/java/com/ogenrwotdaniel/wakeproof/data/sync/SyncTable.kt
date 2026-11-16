@@ -131,7 +131,9 @@ fun syncTables(
                 "kind" to it.kind.name,
                 "status" to it.status.name,
                 "amount" to it.amount,
-                "subject" to it.subject
+                "subject" to it.subject,
+                // 2026-11-15; MUST match the watch's `CloudContract.EVENT_TITLE`.
+                "eventTitle" to it.eventTitle
             )
         },
         decode = { doc ->
@@ -150,6 +152,8 @@ fun syncTables(
                     // would point at a different alarm (or none) on the other device.
                     alarmId = null,
                     subject = doc.getString("subject"),
+                    // Absent from a document written before event titles: no event.
+                    eventTitle = doc.getString("eventTitle")?.takeIf { it.isNotBlank() },
                     syncId = meta.syncId,
                     updatedAt = meta.updatedAt,
                     deleted = meta.deleted,

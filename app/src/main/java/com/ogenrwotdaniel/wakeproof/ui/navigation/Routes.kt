@@ -41,11 +41,14 @@ data object FlashcardsRoute
 @Serializable
 data object ForestRoute
 
-/** Photographing the summary a focus session asks for at its end. */
+/**
+ * Photographing the summary a focus session asks for at its end, or, with
+ * [replacing] (a kept photo's file name), retaking that photo.
+ */
 @Serializable
-data object SummaryCaptureRoute
+data class SummaryCaptureRoute(val replacing: String? = null)
 
-/** The 19:50 alarm: tomorrow's top three, written to silence it. */
+/** The top-three alarm (`TOP_THREE_MINUTES`): tomorrow's top three, written to silence it. */
 @Serializable
 data object TopThreeVerifyRoute
 

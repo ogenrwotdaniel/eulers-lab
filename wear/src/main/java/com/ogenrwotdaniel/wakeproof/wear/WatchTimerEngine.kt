@@ -72,7 +72,7 @@ object WatchTimerEngine {
      * re-measured here at the tap — the confirm may have sat open. False when
      * refused: a session already running, or too little of the event left.
      */
-    suspend fun startForEvent(context: Context, beginMillis: Long, endMillis: Long): Boolean {
+    suspend fun startForEvent(context: Context, beginMillis: Long, endMillis: Long, title: String = ""): Boolean {
         var started = false
         mutate(context) {
             if (it.active) return@mutate it
@@ -81,7 +81,8 @@ object WatchTimerEngine {
             val stats = WearStatsReader.read(context)
             if (bedNow() || summaryHolds(stats.summaryUntilMillis, now)) return@mutate it
             started = true
-            WatchTimer.startExact(minutes, stats.subject, now)
+            // The course as subject and the event's own name beside it, as on the phone (2026-11-15).
+            WatchTimer.startExact(minutes, stats.subject, now, eventTitle = title)
         }
         return started
     }

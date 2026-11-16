@@ -270,4 +270,52 @@ class WatchTimerTest {
         // The watch's own session, handed back to it, is its own again.
         assertFalse(WatchTimer.follow(phone.copy(origin = "watch"), now)!!.following)
     }
+
+    @Test
+    fun `an event title is trimmed, cut to the kept length, and blank is none`() {
+        assertEquals("Graphene seminar", WatchTimer.eventTitleOf(" Graphene seminar "))
+        assertNull(WatchTimer.eventTitleOf("  "))
+        assertNull(WatchTimer.eventTitleOf(null))
+        assertEquals(WatchTimer.EVENT_TITLE_MAX_CHARS, WatchTimer.eventTitleOf("y".repeat(300))!!.length)
+    }
+
+    @Test
+    fun `an event session keeps the course as subject and the title on every block`() {
+        val now = 1_000_000L
+        val state = WatchTimer.startExact(60, "Materials", now, sessionId = "abcdefgh-1", eventTitle = " Graphene seminar ")
+        assertEquals("Materials", state.subject)
+        assertEquals("Graphene seminar", state.eventTitle)
+        val block = WatchTimer.advance(state, state.phaseEndsAt, java.time.ZoneOffset.UTC).completed!!
+        assertEquals("Materials", block.subject)
+        assertEquals("Graphene seminar", block.eventTitle)
+    }
+
+    @Test
+    fun `following the phone takes its course and its event title`() {
+        val now = 1_000_000L
+        val phone = PhoneSession(
+            sessionId = "abcdefgh-2", origin = "install-1", phaseName = "FOCUS", phaseEndsAt = now + 600_000L,
+            completedFocus = 0, targetFocusBlocks = 2, focusSeconds = 1500, shortBreakSeconds = 300,
+            longBreakSeconds = 900, longBreakEvery = 4, lastFocusSeconds = 1500,
+            subject = "Deep Learning", eventTitle = "CV reading group"
+        )
+        val followed = WatchTimer.follow(phone, now)!!
+        assertEquals("Deep Learning", followed.subject)
+        assertEquals("CV reading group", followed.eventTitle)
+        // An older phone sends no title: no event.
+        assertNull(WatchTimer.follow(phone.copy(eventTitle = null), now)!!.eventTitle)
+    }
+
+    @Test
+    fun `an outbox block survives storage with both labels, and an older record still reads`() {
+        val block = FocusBlock("s-b1", 1L, 2L, 25, 20_000L, "A|B", "Seminar | room 3")
+        assertEquals(block, FocusSessionOutbox.decode(FocusSessionOutbox.encode(block)))
+        val bare = block.copy(subject = null, eventTitle = null)
+        assertEquals(bare, FocusSessionOutbox.decode(FocusSessionOutbox.encode(bare)))
+        // The format before event titles: six fields, the subject raw and last.
+        assertEquals(
+            FocusBlock("s-b1", 1L, 2L, 25, 20_000L, "Calculus|II"),
+            FocusSessionOutbox.decode("s-b1|1|2|25|20000|Calculus|II")
+        )
+    }
 }

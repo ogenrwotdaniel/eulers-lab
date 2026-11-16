@@ -33,7 +33,7 @@ class TopThreeViewModel @Inject constructor(
         /** The stored list has been looked up; until then the fields stay locked. */
         val loaded: Boolean = false,
         val saved: Boolean = false,
-        /** The 19:50 alarm's emergency dismiss, open after [EMERGENCY_AFTER_MS] of ringing. */
+        /** The top-three alarm's emergency dismiss, open after [EMERGENCY_AFTER_MS] of ringing. */
         val emergencyAvailable: Boolean = false,
         val emergencyHoldSeconds: Int = 60
     ) {
@@ -84,7 +84,7 @@ class TopThreeViewModel @Inject constructor(
         )
     }
 
-    /** [ringing]: saved to silence the 19:50 alarm, so it is logged as that alarm done. */
+    /** [ringing]: saved to silence the top-three alarm (`TOP_THREE_MINUTES`), so it is logged as that alarm done. */
     fun save(ringing: Boolean = false) {
         val state = _uiState.value
         if (saving || state.saved || !state.canSave) return

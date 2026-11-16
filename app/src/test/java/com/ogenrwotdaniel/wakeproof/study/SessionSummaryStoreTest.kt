@@ -123,4 +123,35 @@ class SessionSummaryStoreTest {
         // After a restart the wall clock decides.
         assertNull(summaryDue(state, jumped, SteadyClock(5_000L, 8)))
     }
+
+    @Test
+    fun `a summary photo can be retaken for ten minutes after it was taken, never before it`() {
+        assertTrue(summaryRetakeOpen(1_000_000L, 1_000_000L))
+        assertTrue(summaryRetakeOpen(1_000_000L, 1_000_000L + SUMMARY_RETAKE_MILLIS))
+        assertFalse(summaryRetakeOpen(1_000_000L, 1_000_001L + SUMMARY_RETAKE_MILLIS))
+        assertFalse(summaryRetakeOpen(1_000_000L, 999_999L))
+    }
+
+    @Test
+    fun `a retake offered at the window's end may be kept for a few minutes more, never after`() {
+        assertTrue(summaryRetakeOpen(takenAt = 0L, now = SUMMARY_RETAKE_KEEP_MILLIS, limit = SUMMARY_RETAKE_KEEP_MILLIS))
+        assertFalse(summaryRetakeOpen(takenAt = 0L, now = SUMMARY_RETAKE_KEEP_MILLIS + 1, limit = SUMMARY_RETAKE_KEEP_MILLIS))
+        assertFalse(summaryRetakeOpen(takenAt = 10L, now = 9L, limit = SUMMARY_RETAKE_KEEP_MILLIS))
+    }
+
+    @Test
+    fun `a summary photo is refused inside the writing time, never once it is over or nothing is owed`() {
+        val asked = withSummaryAsked(SummaryState(), "s1", "Optics", now = 1_000_000L)
+        assertTrue(summaryKeepTooEarly(asked, now = 1_000_000L + SUMMARY_WRITE_MILLIS - 1))
+        assertFalse(summaryKeepTooEarly(asked, now = 1_000_000L + SUMMARY_WRITE_MILLIS))
+        assertFalse(summaryKeepTooEarly(SummaryState(), now = 1_000_000L))
+    }
+
+    @Test
+    fun `a retake is timed on the steady clock, for a photo kept in this process only`() {
+        assertTrue(summaryRetakeAllowed(keptElapsed = 50L, elapsed = 50L + SUMMARY_RETAKE_MILLIS))
+        assertFalse(summaryRetakeAllowed(keptElapsed = 50L, elapsed = 51L + SUMMARY_RETAKE_MILLIS))
+        // Kept before this process started: not known, not offered.
+        assertFalse(summaryRetakeAllowed(keptElapsed = null, elapsed = 51L))
+    }
 }
