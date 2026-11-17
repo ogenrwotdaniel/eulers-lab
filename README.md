@@ -8,9 +8,9 @@ Euler's Lab (formerly **WakeProof**, renamed after the mathematician Leonhard Eu
 
 The Android application ID is still `com.ogenrwotdaniel.wakeproof` (as are the Kotlin packages and the watch and clipboard wire names), so existing installs, sync and watch pairing keep working.
 
-- **Project page:** https://ogenrwotdaniel.github.io/wakeproof/
-- **Privacy policy:** https://ogenrwotdaniel.github.io/wakeproof/privacy/
-- **Documentation (PDF, written before the rename):** https://ogenrwotdaniel.github.io/wakeproof/wakeproof_documentation.pdf
+- **Project page:** https://ogenrwotdaniel.github.io/eulers-lab/
+- **Privacy policy:** https://ogenrwotdaniel.github.io/eulers-lab/privacy/
+- **Documentation (PDF):** https://ogenrwotdaniel.github.io/eulers-lab/eulers_lab_documentation.pdf
 
 ---
 
