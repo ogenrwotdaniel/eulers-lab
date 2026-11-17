@@ -1,7 +1,6 @@
 package com.ogenrwotdaniel.wakeproof.wear.walls
 
 import android.content.pm.ApplicationInfo
-import java.time.DayOfWeek
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -137,44 +136,47 @@ object WatchGate {
 
 /**
  * COPY of the phone's fixed schedule (`WallRules.kt` in `:app`): gated apps open only
- * Saturday and Sunday 14:00–16:00. The phone's bedtime wall (16:00–08:20) and night
+ * 12:25–12:50, every day (since 2026-11-16). The phone's bedtime wall (16:00–08:20) and night
  * wall (18:00–08:00 on the phone) lie wholly outside that window, so on the watch
  * they need no rule of their own.
  */
 object WatchSchedule {
-    /** COPY of `WEEKEND_SHUT_DAYS`: shut all day. */
-    val SHUT_DAYS: Set<DayOfWeek> = setOf(
-        DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY, DayOfWeek.THURSDAY, DayOfWeek.FRIDAY
-    )
-
     /** COPY of `WallRule.OPEN_WINDOW_START_MINUTES.default`. */
-    const val OPEN_WINDOW_START_MINUTES = 14 * 60
+    const val OPEN_WINDOW_START_MINUTES = 12 * 60 + 25
 
     /** COPY of `WallRule.OPEN_WINDOW_END_MINUTES.default`. */
-    const val OPEN_WINDOW_END_MINUTES = 16 * 60
+    const val OPEN_WINDOW_END_MINUTES = 12 * 60 + 50
 
     /** COPY of `WallRule.BEDTIME_START_MINUTES.default`; kept to show it lies past the window. */
     const val BEDTIME_START_MINUTES = 16 * 60
 
-    /** Pure: whether the fixed schedule shuts gated apps at [at] (watch-local time). */
-    fun shut(at: LocalDateTime): Boolean {
-        val minute = at.hour * 60 + at.minute
-        return at.dayOfWeek in SHUT_DAYS ||
-            minute !in OPEN_WINDOW_START_MINUTES until minOf(OPEN_WINDOW_END_MINUTES, BEDTIME_START_MINUTES)
+    /** The fixed window, `[start, end)` in minutes of the day. */
+    val DEFAULT_WINDOW = Window(OPEN_WINDOW_START_MINUTES, minOf(OPEN_WINDOW_END_MINUTES, BEDTIME_START_MINUTES))
+
+    /** The gated apps' daily open window, `[start, end)` in minutes of the day. */
+    data class Window(val start: Int, val end: Int)
+
+    /**
+     * Pure: the window in force, from what the phone sent (`window_start` / `window_end`,
+     * -1 when it never said). Tighten-only: a stricter window kept on the phone applies
+     * here too, but nothing the phone sends can widen the fixed one, and a window
+     * that would leave no minute open is not believed (the phone never makes one).
+     */
+    fun window(sentStart: Int, sentEnd: Int): Window {
+        if (sentStart < 0 || sentEnd <= sentStart) return DEFAULT_WINDOW
+        val tightened = Window(maxOf(DEFAULT_WINDOW.start, sentStart), minOf(DEFAULT_WINDOW.end, sentEnd))
+        return if (tightened.start < tightened.end) tightened else DEFAULT_WINDOW
     }
 
+    /** Pure: whether the schedule shuts gated apps at [at] (watch-local time). */
+    fun shut(at: LocalDateTime, window: Window = DEFAULT_WINDOW): Boolean =
+        at.hour * 60 + at.minute !in window.start until window.end
+
     /** Pure: the start of the next open window at or after [at]; [at] itself while it is open. */
-    fun nextOpening(at: LocalDateTime): LocalDateTime {
-        if (!shut(at)) return at
-        val today = at.toLocalDate()
-        for (offset in 0L..7L) {
-            val day = today.plusDays(offset)
-            if (day.dayOfWeek in SHUT_DAYS) continue
-            val start = day.atTime(OPEN_WINDOW_START_MINUTES / 60, OPEN_WINDOW_START_MINUTES % 60)
-            if (start.isAfter(at)) return start
-        }
-        // Unreachable while SHUT_DAYS leaves a day open; a week ahead is the honest worst case.
-        return today.plusDays(7).atTime(OPEN_WINDOW_START_MINUTES / 60, OPEN_WINDOW_START_MINUTES % 60)
+    fun nextOpening(at: LocalDateTime, window: Window = DEFAULT_WINDOW): LocalDateTime {
+        if (!shut(at, window)) return at
+        val today = at.toLocalDate().atTime(window.start / 60, window.start % 60)
+        return if (today.isAfter(at)) today else today.plusDays(1)
     }
 }
 
@@ -188,7 +190,7 @@ enum class WatchWall(val title: String) {
     SUMMARY("Session summary"),
     /** An exam week the phone holds. */
     EXAM("Exam week"),
-    /** Outside Saturday–Sunday 14:00–16:00. */
+    /** Outside the daily 12:25–12:50 window. */
     SCHEDULE("Gated apps are shut")
 }
 
@@ -204,7 +206,8 @@ data class WallInputs(
     val watchSessionActive: Boolean,
     val phoneSessionLive: Boolean,
     val summaryUntilMillis: Long = 0L,
-    val examShutUntilMillis: Long = 0L
+    val examShutUntilMillis: Long = 0L,
+    val window: WatchSchedule.Window = WatchSchedule.DEFAULT_WINDOW
 )
 
 /** COPY of the watch's `SUMMARY_HOLD_MAX_MILLIS` (= `:app` `SUMMARY_HOLD_MILLIS`). */
@@ -229,7 +232,7 @@ fun watchWallVerdict(inputs: WallInputs): WatchWall? = when {
     inputs.watchSessionActive || inputs.phoneSessionLive -> WatchWall.FOCUS
     inputs.summaryUntilMillis - inputs.nowMillis in 1..SUMMARY_HOLD_MAX -> WatchWall.SUMMARY
     examHolds(inputs.examShutUntilMillis, inputs.nowMillis) -> WatchWall.EXAM
-    WatchSchedule.shut(inputs.localNow) -> WatchWall.SCHEDULE
+    WatchSchedule.shut(inputs.localNow, inputs.window) -> WatchWall.SCHEDULE
     else -> null
 }
 
@@ -253,7 +256,7 @@ private const val CLOCKWORK_TIME_OFF = 2
 /** Pure: whether the watch's clock is set automatically, by either setting. */
 fun clockIsAutomatic(autoTime: Int, clockworkAutoTime: Int): Boolean = when (clockworkAutoTime) {
     // Wear's own switch decides when it is set: an explicit off wins over a stale
-    // AUTO_TIME = 1, or setting the watch to Saturday 15:00 would open every gated app.
+    // AUTO_TIME = 1, or setting the watch to 12:30 would open every gated app.
     CLOCKWORK_TIME_OFF -> false
     CLOCKWORK_TIME_UNKNOWN -> autoTime != 0
     else -> true
@@ -266,11 +269,11 @@ fun clockIsAutomatic(autoTime: Int, clockworkAutoTime: Int): Boolean = when (clo
 fun clockText(hour: Int, minute: Int, is24Hour: Boolean, locale: Locale = Locale.getDefault()): String =
     DateTimeFormatter.ofPattern(if (is24Hour) "HH:mm" else "h:mm a", locale).format(LocalTime.of(hour, minute))
 
-/** Pure: "Saturday and Sunday 14:00–16:00" in the watch's clock style. */
-fun openWindowText(is24Hour: Boolean): String {
-    val start = WatchSchedule.OPEN_WINDOW_START_MINUTES
-    val end = WatchSchedule.OPEN_WINDOW_END_MINUTES
-    return "Saturday and Sunday ${clockText(start / 60, start % 60, is24Hour)}–${clockText(end / 60, end % 60, is24Hour)}"
+/** Pure: "every day 12:25–12:50" in the watch's clock style. */
+fun openWindowText(is24Hour: Boolean, window: WatchSchedule.Window = WatchSchedule.DEFAULT_WINDOW): String {
+    val start = window.start
+    val end = window.end
+    return "every day ${clockText(start / 60, start % 60, is24Hour)}–${clockText(end / 60, end % 60, is24Hour)}"
 }
 
 /** Pure: the wall screen's lines, naming when gated apps next open. */
@@ -278,35 +281,45 @@ fun wallDetail(
     wall: WatchWall,
     localNow: LocalDateTime,
     is24Hour: Boolean = true,
-    examEnd: LocalDateTime? = null
+    examEnd: LocalDateTime? = null,
+    window: WatchSchedule.Window = WatchSchedule.DEFAULT_WINDOW
 ): String {
-    // An exam week outlasts the weekend window: the next opening is the first one
-    // after the exam, never "after this" inside a window the exam keeps shut.
-    val from = if (wall == WatchWall.EXAM && examEnd != null && examEnd.isAfter(localNow)) examEnd else localNow
-    val opening = WatchSchedule.nextOpening(from)
-    val next = if (opening == localNow) {
-        "Gated apps open again after this."
-    } else {
-        "Gated apps next open ${openingText(opening, localNow, is24Hour)}."
+    // An exam week outlasts the daily window: the next opening is the first one
+    // after the exam, whatever wall stands now, so no wall promises a window the
+    // exam keeps shut. Only an end the verdict would believe too
+    // ([EXAM_HOLD_MAX_MILLIS]): a stale or corrupt one must not push it weeks out.
+    val believed = examEnd?.takeIf {
+        it.isAfter(localNow) && !it.isAfter(localNow.plusSeconds(EXAM_HOLD_MAX_MILLIS / 1000))
+    }
+    val opening = WatchSchedule.nextOpening(believed ?: localNow, window)
+    val next = when {
+        opening == localNow -> "\nGated apps open again after this."
+        // Without a known exam end only today's window is named, as on the phone: the
+        // phone sends an end once a week has begun, so tomorrow may yet be exam week.
+        believed == null && opening.toLocalDate() != localNow.toLocalDate() -> ""
+        else -> "\nGated apps next open ${openingText(opening, localNow, is24Hour)}."
     }
     val why = when (wall) {
         WatchWall.CLOCK -> "Automatic time is off on this watch. Turn it back on in Settings."
         WatchWall.FOCUS -> "A focus session is running, breaks included."
         WatchWall.SUMMARY -> "Photograph your session summary on the phone first."
         WatchWall.EXAM -> "Exam week: gated apps stay shut all day until the exam."
-        WatchWall.SCHEDULE -> "Gated apps open ${openWindowText(is24Hour)} only."
+        WatchWall.SCHEDULE -> "Gated apps open ${openWindowText(is24Hour, window)} only."
     }
-    return "$why\n$next"
+    return "$why$next"
 }
 
-/** Pure: "today at 14:00", "tomorrow at 14:00" or "Saturday at 14:00". */
+/** Pure: "today at 12:25", "tomorrow at 12:25", "Saturday at 12:25" or "Tuesday 24 November at 12:25". */
 fun openingText(opening: LocalDateTime, localNow: LocalDateTime, is24Hour: Boolean = true): String {
     val days = opening.toLocalDate().toEpochDay() - localNow.toLocalDate().toEpochDay()
     val time = clockText(opening.hour, opening.minute, is24Hour)
-    val day = when (days) {
-        0L -> "today"
-        1L -> "tomorrow"
-        else -> opening.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.ENGLISH)
+    val weekday = opening.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.ENGLISH)
+    val day = when {
+        days == 0L -> "today"
+        days == 1L -> "tomorrow"
+        // A weekday name alone reads as this week; an exam can push it further.
+        days < 7L -> weekday
+        else -> "$weekday ${opening.dayOfMonth} ${opening.month.getDisplayName(TextStyle.FULL, Locale.ENGLISH)}"
     }
     return "$day at $time"
 }

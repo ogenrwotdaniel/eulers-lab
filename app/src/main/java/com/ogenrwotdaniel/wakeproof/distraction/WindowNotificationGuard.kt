@@ -27,11 +27,11 @@ import kotlinx.coroutines.withContext
  * arrive, and whatever is still in the shade when a wall goes up is swept.
  *
  * Since 2026-11-01 it asks [AppBlockService.walledNow] and follows EVERY wall —
- * a focus session (on any of the user's devices), a spent cap, the Monday–Friday
- * shutdown and Saturday–Sunday 14:00–16:00 window, bedtime, and the night
+ * a focus session (on any of the user's devices), a spent cap, the daily
+ * 12:25–12:50 window, bedtime, and the night
  * sleep wall — because a notification is a way to read an app the wall keeps
  * shut: the shade, the Edge panel, Edge lighting and an icon's long-press preview
- * all show it. With the blocker not running it falls back to [windowShutActive]
+ * all show it. With the blocker not running it falls back to [outsideOpenWindow]
  * directly for gated apps.
  *
  * LIMIT, accepted: the system plays a notification's sound and vibration before
@@ -47,6 +47,13 @@ import kotlinx.coroutines.withContext
 class WindowNotificationGuard : NotificationListenerService() {
 
     @Inject lateinit var wallRulesRepository: WallRulesRepository
+    @Inject lateinit var examDao: com.ogenrwotdaniel.wakeproof.data.db.ExamDao
+
+    /**
+     * Exam week for when the block service is down, re-read with each sweep: the
+     * check runs per notification on the main thread, so it reads this, not Room.
+     */
+    @Volatile private var examWeek: ExamWeek? = null
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var sweeper: Job? = null
@@ -107,6 +114,14 @@ class WindowNotificationGuard : NotificationListenerService() {
 
     private suspend fun sweep() {
         refreshDefaults()
+        // Every sweep, so it is current the moment the block service stops; a failed
+        // read keeps what was known, as the service does (exam week never lifts on I/O).
+        try {
+            examWeek = AppBlockService.readExamWeek(this, examDao)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (_: Exception) {
+        }
         val active = runCatching { activeNotifications }.getOrNull() ?: return
         active.filter(::shouldRemove).forEach(::remove)
     }
@@ -156,21 +171,18 @@ class WindowNotificationGuard : NotificationListenerService() {
         // The bedtime wall (from its start until 08:20) can cut into the window,
         // so the real opening, not the raw window, decides what is removed.
         val open = gatedOpenWindow(rules)
-        if (!windowShutActive(
-                dayOfWeek = now.dayOfWeek,
-                minuteOfDay = minuteOfDay,
-                weekendShut = rules.weekendShut,
-                startMinutes = open?.first ?: RULE_OFF_MINUTES,
-                endMinutes = open?.second ?: RULE_OFF_MINUTES
-            )
-        ) {
-            return false
-        }
         val pkg = sbn.packageName
-        return windowedCache.getOrPut(pkg) {
+        val walledApp = windowedCache.getOrPut(pkg) {
             val gated = AppGate.isGated(this, pkg, essentials, browsers, rules.gateBrowsers, defaultSms)
             pkg !in essentials && gated
         }
+        if (!walledApp) return false
+        // Inside the window only exam week removes it.
+        return outsideOpenWindow(
+            minuteOfDay = minuteOfDay,
+            startMinutes = open?.first ?: RULE_OFF_MINUTES,
+            endMinutes = open?.second ?: RULE_OFF_MINUTES
+        ) || examWeek != null
     }
 
     private fun remove(sbn: StatusBarNotification) {

@@ -424,7 +424,7 @@ private fun MissingGrantsCard(missing: MissingGrants, modifier: Modifier = Modif
             )
             if (missing.usageAccess) {
                 Text(
-                    text = "Usage access is off, so gated apps (including weekend-only apps) stay open. " +
+                    text = "Usage access is off, so gated apps stay open outside their daily window. " +
                         "If the switch is greyed out, open App info → ⋮ (top right) → Allow restricted settings first.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onErrorContainer

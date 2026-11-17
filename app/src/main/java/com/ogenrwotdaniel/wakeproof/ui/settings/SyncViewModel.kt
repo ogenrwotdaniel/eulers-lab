@@ -185,10 +185,6 @@ class SyncViewModel @Inject constructor(
         }
     }
 
-    fun clearMessage() {
-        message.value = null
-    }
-
     private suspend fun runSync(announceNoChanges: Boolean) {
         message.value = when (val result = syncEngine.sync()) {
             is SyncResult.Skipped -> if (announceNoChanges) "Sync is not set up yet." else null

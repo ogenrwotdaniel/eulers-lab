@@ -9,7 +9,6 @@ import com.ogenrwotdaniel.wakeproof.data.StatsRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import com.ogenrwotdaniel.wakeproof.distraction.AppBlockService
 import com.ogenrwotdaniel.wakeproof.distraction.ExamWeek
-import com.ogenrwotdaniel.wakeproof.distraction.examWeekHeld
 import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
@@ -41,6 +40,15 @@ object WearContract {
      * `WearContract.KEY_EXAM_SHUT_UNTIL`.
      */
     const val KEY_EXAM_SHUT_UNTIL = "exam_shut_until"
+    /**
+     * The gated apps' daily open window in force on the phone, minutes of the day,
+     * `[start, end)` ([com.ogenrwotdaniel.wakeproof.distraction.gatedOpenWindow]):
+     * a stricter window kept from the editable build reaches the watch too. Absent
+     * from an older phone; the watch then keeps its own copy of the default. MUST
+     * match wear `WearContract.KEY_WINDOW_START` / `KEY_WINDOW_END`.
+     */
+    const val KEY_WINDOW_START = "window_start"
+    const val KEY_WINDOW_END = "window_end"
     const val KEY_UPDATED = "updated_at"
     // Phase lengths and subject, so a pomodoro started ON THE WATCH (with no
     // phone around) runs the user's own lengths and logs under their subject.
@@ -92,9 +100,7 @@ object WearContract {
      */
     const val COMMAND_PATH = "/wakeproof/command"
     const val CMD_TIMER_START = "timer_start"
-    const val CMD_TIMER_PAUSE = "timer_pause"
     const val CMD_TIMER_RESUME = "timer_resume"
-    const val CMD_TIMER_STOP = "timer_stop"
 
     /**
      * `agenda_done:<event key>` — the watch's tick on a calendar event. The
@@ -154,6 +160,8 @@ object WearContract {
     const val KEY_WS_LONG_EVERY = "ws_long_every"
     const val KEY_WS_LAST_FOCUS_SEC = "ws_last_focus_sec"
     const val KEY_SESSION_ID = "s_id"
+    // Written by the watch's outbox; the phone imports minutes and day only, but the
+    // names stay here so the hand-kept contract lists every key on both sides.
     const val KEY_SESSION_STARTED = "s_started"
     const val KEY_SESSION_ENDED = "s_ended"
     const val KEY_SESSION_MINUTES = "s_minutes"
@@ -192,7 +200,8 @@ class WearStatsSync @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val completionRepository: CompletionRepository,
     private val summaryStore: com.ogenrwotdaniel.wakeproof.study.SessionSummaryStore,
-    private val examDao: com.ogenrwotdaniel.wakeproof.data.db.ExamDao
+    private val examDao: com.ogenrwotdaniel.wakeproof.data.db.ExamDao,
+    private val wallRulesRepository: com.ogenrwotdaniel.wakeproof.distraction.WallRulesRepository
 ) {
     private val dataClient by lazy { Wearable.getDataClient(context) }
 
@@ -213,6 +222,12 @@ class WearStatsSync @Inject constructor(
                 owed?.let { it.askedAtMillis + com.ogenrwotdaniel.wakeproof.study.SUMMARY_HOLD_MILLIS } ?: 0L
             )
             dataMap.putLong(WearContract.KEY_EXAM_SHUT_UNTIL, examShutUntilMillis(examWeekForWatch(), ZoneId.systemDefault()))
+            runCatching {
+                com.ogenrwotdaniel.wakeproof.distraction.gatedOpenWindow(wallRulesRepository.current())
+            }.getOrNull()?.let { (start, end) ->
+                dataMap.putInt(WearContract.KEY_WINDOW_START, start)
+                dataMap.putInt(WearContract.KEY_WINDOW_END, end)
+            }
             dataMap.putInt(WearContract.KEY_FOCUS_LEN, settings.focusMinutes)
             dataMap.putInt(WearContract.KEY_SHORT_BREAK_LEN, settings.shortBreakMinutes)
             dataMap.putInt(WearContract.KEY_LONG_BREAK_LEN, settings.longBreakMinutes)
@@ -241,11 +256,7 @@ class WearStatsSync @Inject constructor(
         // taken from the service, and null falls through to the stored holds.
         val (running, held) = AppBlockService.examWeekNow()
         if (running && held != null) return held
-        return runCatching {
-            val today = LocalDate.now().toEpochDay()
-            val exams = examDao.observeUpcoming(today).first().map { it.name to it.epochDay }
-            examWeekHeld(exams, AppBlockService.storedExamHolds(context).orEmpty(), today)
-        }.getOrNull()
+        return AppBlockService.fallbackExamWeek(context, examDao)
     }
 }
 

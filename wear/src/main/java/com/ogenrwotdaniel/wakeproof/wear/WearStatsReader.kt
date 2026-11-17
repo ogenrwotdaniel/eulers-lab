@@ -22,6 +22,9 @@ private object WearContract {
     const val KEY_SUMMARY_UNTIL = "summary_until"
     /** Wall-clock end of the exam weeks the phone holds; 0 = none. MUST match app `KEY_EXAM_SHUT_UNTIL`. */
     const val KEY_EXAM_SHUT_UNTIL = "exam_shut_until"
+    /** The phone's open window in force, minutes of the day. MUST match app `KEY_WINDOW_START` / `KEY_WINDOW_END`. */
+    const val KEY_WINDOW_START = "window_start"
+    const val KEY_WINDOW_END = "window_end"
     const val KEY_UPDATED = "updated_at"
     const val KEY_FOCUS_LEN = "focus_len"
     const val KEY_SHORT_BREAK_LEN = "short_break_len"
@@ -42,6 +45,9 @@ data class WearStats(
      * phone clock); 0 = no exam week, or a phone too old to say. Read by the watch's walls.
      */
     val examShutUntilMillis: Long = 0L,
+    /** The phone's open window in force, minutes of the day; -1 when an older phone never said. */
+    val windowStart: Int = -1,
+    val windowEnd: Int = -1,
     val present: Boolean = false,
     /** When the phone computed these numbers; 0 for a pre-1.6 phone that never said. */
     val updatedAtMillis: Long = 0L,
@@ -102,6 +108,8 @@ object WearStatsReader {
                 focusGoal = map.getInt(WearContract.KEY_FOCUS_GOAL, 0),
                 summaryUntilMillis = map.getLong(WearContract.KEY_SUMMARY_UNTIL, 0L),
                 examShutUntilMillis = map.getLong(WearContract.KEY_EXAM_SHUT_UNTIL, 0L),
+                windowStart = map.getInt(WearContract.KEY_WINDOW_START, -1),
+                windowEnd = map.getInt(WearContract.KEY_WINDOW_END, -1),
                 present = true,
                 updatedAtMillis = map.getLong(WearContract.KEY_UPDATED, 0L),
                 durations = WatchDurations(

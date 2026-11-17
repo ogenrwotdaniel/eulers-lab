@@ -59,6 +59,7 @@ object WatchWallState {
     @Volatile private var phoneReadAt = 0L
     @Volatile private var summaryUntil = 0L
     @Volatile private var examUntil = 0L
+    @Volatile private var openWindow: WatchSchedule.Window = WatchSchedule.DEFAULT_WINDOW
     @Volatile private var phoneTimer: TimerSnapshot? = null
 
     private val gatedCache = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
@@ -78,6 +79,7 @@ object WatchWallState {
         runCatching { WearStatsReader.read(context) }.getOrNull()?.takeIf { it.present }?.let {
             summaryUntil = it.summaryUntilMillis
             examUntil = it.examShutUntilMillis
+            openWindow = WatchSchedule.window(it.windowStart, it.windowEnd)
         }
         runCatching { TimerSnapshot.read(context) }.onSuccess { phoneTimer = it }
         phoneReadAt = now
@@ -85,6 +87,9 @@ object WatchWallState {
 
     /** The wall up now, or null when gated apps are open. Reads only cached phone state. */
     /** When the phone's held exam weeks end, in local time; null for none. */
+    /** The gated apps' window in force, as the phone last said (tighten-only). */
+    fun window(): WatchSchedule.Window = openWindow
+
     fun examEnd(): LocalDateTime? = examUntil.takeIf { it > 0L }?.let {
         LocalDateTime.ofInstant(java.time.Instant.ofEpochMilli(it), java.time.ZoneId.systemDefault())
     }
@@ -97,7 +102,8 @@ object WatchWallState {
             watchSessionActive = runCatching { WatchTimerEngine.state(context).active }.getOrDefault(false),
             phoneSessionLive = phoneTimer?.liveAt(now) == true,
             summaryUntilMillis = summaryUntil,
-            examShutUntilMillis = examUntil
+            examShutUntilMillis = examUntil,
+            window = openWindow
         )
     )
 

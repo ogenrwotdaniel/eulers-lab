@@ -202,9 +202,6 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     suspend fun setMathProblems(value: Int) = dataStore.edit { it[MATH_PROBLEMS] = value }
     suspend fun setMathEulerMode(value: Boolean) = dataStore.edit { it[MATH_EULER_MODE] = value }
     suspend fun setEmergencyHoldSeconds(value: Int) = dataStore.edit { it[EMERGENCY_HOLD_SECONDS] = value }
-    suspend fun setFocusMinutes(value: Int) = dataStore.edit { it[FOCUS_MINUTES] = value }
-    suspend fun setShortBreakMinutes(value: Int) = dataStore.edit { it[SHORT_BREAK_MINUTES] = value }
-    suspend fun setLongBreakMinutes(value: Int) = dataStore.edit { it[LONG_BREAK_MINUTES] = value }
     suspend fun setFocusMusicEnabled(value: Boolean) = dataStore.edit { it[FOCUS_MUSIC_ENABLED] = value }
     suspend fun setBreakMusicEnabled(value: Boolean) = dataStore.edit { it[BREAK_MUSIC_ENABLED] = value }
     suspend fun setSoundFadeSeconds(value: Int) = dataStore.edit { it[SOUND_FADE_SECONDS] = value }

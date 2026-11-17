@@ -167,7 +167,7 @@ class WatchWallService : Service() {
         val intent = Intent(this, WatchBlockedActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
             .putExtra(WatchBlockedActivity.EXTRA_TITLE, wall.title)
-            .putExtra(WatchBlockedActivity.EXTRA_DETAIL, wallDetail(wall, LocalDateTime.now(), DateFormat.is24HourFormat(this), WatchWallState.examEnd()))
+            .putExtra(WatchBlockedActivity.EXTRA_DETAIL, wallDetail(wall, LocalDateTime.now(), DateFormat.is24HourFormat(this), WatchWallState.examEnd(), WatchWallState.window()))
         // Without the overlay grant Android refuses a start from the background; the
         // refusal is logged and the next tick tries again, never a crash.
         runCatching { startActivity(intent) }.onFailure { Log.w(TAG, "wall refused", it) }
@@ -185,7 +185,7 @@ class WatchWallService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle("Walls are up")
-            .setContentText("Gated apps open ${openWindowText(DateFormat.is24HourFormat(this))}.")
+            .setContentText("Gated apps open ${openWindowText(DateFormat.is24HourFormat(this), WatchWallState.window())}.")
             .setOngoing(true)
             .setSilent(true)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)

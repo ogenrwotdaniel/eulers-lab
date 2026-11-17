@@ -1,12 +1,12 @@
-# WakeProof Privacy Policy
+# Euler's Lab Privacy Policy
 
-**Effective date:** 15 November 2026
+**Effective date:** 17 November 2026
 **Developer:** Ogenrwot Daniel
-**Contact:** ogenrwotdaniel@gmail.com
+**Contact:** ogenrwotdaniel@unist.ac.kr
 
-WakeProof is an alarm clock and study companion app. This policy explains what
+Euler's Lab (formerly WakeProof) is an alarm clock and study companion app. This policy explains what
 data the app handles, where it goes, and the choices you have. The short
-version: **WakeProof has no ads and no analytics, and everything stays on your
+version: **Euler's Lab has no ads and no analytics, and everything stays on your
 phone unless you turn on one of two optional features.** Those two are cloud
 sync (which needs you to sign in) and the AI features (which need you to supply
 your own Gemini API key). Both are off until you switch them on, and both are
@@ -21,34 +21,34 @@ app:
   choices, subjects, distraction limits, wall rules).
 - **Habit history** (which alarms you completed, focus minutes, streaks,
   flashcards and their review schedule, exams, parked thoughts).
-- **Screen-time statistics.** With your permission (Usage access), WakeProof
+- **Screen-time statistics.** With your permission (Usage access), Euler's Lab
   reads your device's app-usage statistics to show you your own screen time and
   to act on the daily limits you set — either a notification, or blocking the
   app from opening for the rest of the day, whichever you chose for that app.
   The same on-device check enforces your schedule walls over social, video,
   messaging, portal and browser apps (for example opening only during your
-  Saturday–Sunday 14:00–16:00 window and staying shut Monday through Friday) and
+  daily 12:25–12:50 window) and
   keeps apps outside your focus list shut while a focus session runs. These
   statistics are processed on-device only.
-- **Your installed apps.** WakeProof reads the list of apps installed on your
+- **Your installed apps.** Euler's Lab reads the list of apps installed on your
   phone to let you set daily limits, choose study apps, and — if you make
-  WakeProof your home screen — show your apps. During a focus session it
+  Euler's Lab your home screen — show your apps. During a focus session it
   checks which app is on screen (using Usage access) to keep apps outside your
   focus list shut and, with "Grow a tree" on, to tell whether you left for a
   distracting app. None of this is stored beyond your own settings or sent
   anywhere.
 - **Notifications from apps you have walled.** With your permission
-  (Notification access), WakeProof removes notifications posted by an app
-  while one of your walls keeps it shut — outside your Saturday–Sunday open
-  window, on Monday through Friday, during a focus session, at bedtime, or once
+  (Notification access), Euler's Lab removes notifications posted by an app
+  while one of your walls keeps it shut — outside your daily open window,
+  during a focus session, at bedtime, or once
   its daily limit is spent. It looks only at which app posted a notification,
   never at its content, and stores and sends nothing. The same access lets it
   pause media that a walled app is still playing (for example a video left in
   picture-in-picture); for that it reads only which app is playing and whether
   it is playing.
-- **Calendar events.** With your permission, WakeProof reads event titles and
+- **Calendar events.** With your permission, Euler's Lab reads event titles and
   times from your device calendar to show your agenda — in the app, and on the
-  WakeProof home screen if you use it — to remind you five minutes before an
+  Euler's Lab home screen if you use it — to remind you five minutes before an
   event, and to time a focus session to an event's length. It never modifies your
   calendar. When you start a focus session from an event, that event's title
   (cut to 80 characters) is kept with the session's focus blocks, so you can see
@@ -60,27 +60,27 @@ app:
   image from pushup verification is stored or transmitted.
 - **Session-summary photos.** After a focus session the timer asks
   you to write down what you learnt and photograph the page. Each photo is
-  saved in WakeProof's private storage on that device, where the Session
+  saved in the app's private storage on that device, where the Session
   summaries screen shows it and lets you delete it. Only the newest 90 days
   of summaries are kept; older photos are removed. The photos are never
   uploaded, synced to your other devices or sent to any AI service, and
-  uninstalling the app removes them. WakeProof does not read or analyse what
+  uninstalling the app removes them. Euler's Lab does not read or analyse what
   is on the page.
 - **Day-plan photos and evening reviews from an earlier version.** The
   day-plan alarm and the evening review were removed on 13 November 2026. The
   photos and reviews they had saved are deleted from the device the first time
   the updated app is opened.
 - **Tomorrow's top three.** The up to three lines you write in the evening
-  for the next day are kept in WakeProof's private storage on that device
+  for the next day are kept in the app's private storage on that device
   (the newest 31 evenings). If you turn on Cloud Sync, the most recent
   evening's lines are also stored in your own Firestore account data so your
   other devices can show them, and are deleted with it. They are not in the
   backup file and are never sent to any AI service.
 - **Recall notes.** The lines you write after a focus block are kept in
-  WakeProof's private storage on that device. They are not synced. They are
+  the app's private storage on that device. They are not synced. They are
   included in the JSON backup file you can export yourself. A recall note is
   sent to Google Gemini only if you tap "Draft with AI" on it.
-- **Your music.** If you choose "My music" as the study sound, WakeProof
+- **Your music.** If you choose "My music" as the study sound, Euler's Lab
   reads music files stored on your phone and plays them inside the app during
   focus sessions. You can give it one folder through Android's folder picker
   (it can then read that folder and its subfolders and nothing else), or allow
@@ -89,31 +89,31 @@ app:
   is playing. It never uploads, copies, changes or deletes your music, and
   never sends song names anywhere; your choice of folder, album or artist is
   kept on the device only. No other music app is opened. You can withdraw
-  access at any time in Android Settings → Apps → WakeProof → Permissions, or
+  access at any time in Android Settings → Apps → Euler's Lab → Permissions, or
   by picking a different folder.
-- **Night screen use.** For the sleep score WakeProof reads, from the same
+- **Night screen use.** For the sleep score Euler's Lab reads, from the same
   Usage access, when the screen was on between 20:00 and 03:00. It is worked
   out on the device each time and sent nowhere.
 - **Your Gemini API key**, stored encrypted (Android EncryptedSharedPreferences).
-- **Your paired watch.** If you install the WakeProof watch app, your phone
+- **Your paired watch.** If you install the Euler's Lab watch app, your phone
   sends it a small snapshot — streak, focus minutes and goal, today's agenda, and the current timer — over Google's on-device
   Wearable Data Layer. This travels between your own two devices and reaches no
   server of ours.
 
 ## Optional cloud sync — only when you sign in
 
-WakeProof can keep your data the same across your own devices (for example a
+Euler's Lab can keep your data the same across your own devices (for example a
 phone and a tablet). This is **off by default**. It starts only when you sign in
 under Settings → Sync across devices, and stops when you sign out.
 
-- **Signing in** uses your Google account. WakeProof receives your Google
+- **Signing in** uses your Google account. Euler's Lab receives your Google
   account identifier, email address and display name, and uses them for one
   purpose: to know which private storage area is yours. There is no profile, no
   public presence, and no way for another user to find you.
 - **What is synced:** your alarms, your completion history and streak (with the
   title of the calendar event a focus session was started from, if any), your
   flashcards and their review schedule, your exams, your parked thoughts, your
-  daily focus goal and study-app focus list, and (when you pair WakeProof Clip)
+  daily focus goal and study-app focus list, and (when you pair Euler's Lab Clip)
   end-to-end encrypted clipboard items between your own devices.
 - **What is *not* synced:** your Gemini API key, your full screen-time
   statistics, and your calendar (apart from the event titles of focus sessions
@@ -123,11 +123,11 @@ under Settings → Sync across devices, and stops when you sign out.
   your signed-in account. See <https://firebase.google.com/support/privacy> and
   Google's privacy policy at <https://policies.google.com/privacy>.
 - **Who can see it:** you. Access rules restrict every record to the account
-  that created it. The developer of WakeProof does not read your synced data,
+  that created it. The developer of Euler's Lab does not read your synced data,
   and it is never sold, shared or used for advertising.
 - **Turning it off:** sign out in Settings. Your data stays on the device; it
   simply stops mirroring.
-- **Deleting it:** email **ogenrwotdaniel@gmail.com** from the address you
+- **Deleting it:** email **ogenrwotdaniel@unist.ac.kr** from the address you
   signed in with and your stored data and account record will be deleted.
 
 If you never sign in, none of the above applies and no account data is
@@ -155,8 +155,8 @@ Gemini, with or without a key.
 No alarm uses these features: pushup counting, flashcard
 review and the sums all run on the device.
 
-WakeProof sends this data directly from your phone to Google's Gemini API; the
-developer of WakeProof never receives, stores or sees any of it. Google
+Euler's Lab sends this data directly from your phone to Google's Gemini API; the
+developer of Euler's Lab never receives, stores or sees any of it. Google
 processes it to return a result; their retention and processing are governed by
 Google's privacy policy and Gemini API terms. Don't include personal
 information you wouldn't share with Google (e.g. avoid photographing notes
@@ -167,18 +167,18 @@ internet requests at all**.
 
 ## Permissions summary
 
-| Permission | Why WakeProof asks |
+| Permission | Why Euler's Lab asks |
 |---|---|
-| Camera | Counting pushups (on-device), photographing your session summaries (kept on the device), and scanning the WakeProof Clip pairing code |
+| Camera | Counting pushups (on-device), photographing your session summaries (kept on the device), and scanning the Euler's Lab Clip pairing code |
 | Notifications, exact alarms, full-screen alarms | Making the alarm ring reliably, including on the lock screen |
-| Usage access (special) | Showing you your own screen-time stats, applying the daily app limits you set (notify, or block for the rest of the day), enforcing your open-window and weekend walls on gated apps, and keeping apps outside your focus list shut during a focus session |
+| Usage access (special) | Showing you your own screen-time stats, applying the daily app limits you set (notify, or block for the rest of the day), enforcing your open-window walls on gated apps, and keeping apps outside your focus list shut during a focus session |
 | Display over other apps (special) | The floating Pomodoro timer bubble, the block and focus-session screens shown over other apps, opening the alarm screen while you use other apps, and covering an app left open in a pop-up window while it is walled |
 | Do Not Disturb access (special) | Turning on Do Not Disturb (priority mode) for a focus session, on every device the session walls, and restoring it afterwards |
 | Notification access (special) | Removing notifications from apps while a wall keeps them shut, and pausing media a walled app is still playing; only the app and whether it is playing are looked at, never the content |
 | Calendar (read) | Showing your agenda so you can tick events off, event reminders, focus sessions timed to an event (recorded under the event's title) |
 | Watch: usage access, display over other apps, notification access, list of installed apps | On the Wear OS watch only: seeing which app is in front, showing the wall screen over a gated app, and removing a gated app's notifications while it is shut. Nothing is stored or sent |
 | Music and audio (read, optional) | Choosing your own music by album or artist as the study sound, played on the device. Not needed if you pick a single music folder instead |
-| Home app (role, optional) | Only if you choose WakeProof as your home screen in Settings; switch back any time in Android's default-apps settings |
+| Home app (role, optional) | Only if you choose Euler's Lab as your home screen in Settings; switch back any time in Android's default-apps settings |
 | Internet | Only for the optional cloud sync and Gemini AI features above |
 
 Every permission is optional except notifications/alarms (the app's core); the
@@ -186,7 +186,7 @@ related feature simply stays off if you decline.
 
 ## Data sharing and selling
 
-WakeProof does not sell or rent your personal data to anyone, and does not
+Euler's Lab does not sell or rent your personal data to anyone, and does not
 share it except with the two processors you opt into: Google Firebase if you
 sign in for sync, and the Google Gemini API if you add an API key. Both are
 described above. There are no third-party analytics or advertising SDKs in the
@@ -195,22 +195,29 @@ app.
 ## Data retention and deletion
 
 App data lives on your device. To delete it: uninstall the app, or use Android
-Settings → Apps → WakeProof → Storage → Clear data.
+Settings → Apps → Euler's Lab → Storage → Clear data.
 
 If you enabled cloud sync, a copy also exists under your account. Signing out
 stops the mirroring but does not erase that copy; to have it deleted, email
-**ogenrwotdaniel@gmail.com** from the address you signed in with. Data you
+**ogenrwotdaniel@unist.ac.kr** from the address you signed in with. Data you
 export yourself (CSV or JSON backup) is under your control. Data already
 processed by Google Gemini is subject to Google's policy and account tools.
 
 ## Children
 
-WakeProof is not directed at children under 13 and does not knowingly collect
+Euler's Lab is not directed at children under 13 and does not knowingly collect
 personal information from children.
 
 ## Changes to this policy
 
 Material changes will be posted at this URL with an updated effective date.
+
+**17 November 2026** — the app is now called Euler's Lab (it was WakeProof).
+Only the name changed: the data it handles, where that data goes and your
+choices are the same as before.
+
+**16 November 2026** — updated the gated-app schedule examples to the current
+walls (open every day 12:25–12:50).
 
 **15 November 2026** — updated the gated-app schedule examples to the current
 walls (open Saturday and Sunday 14:00–16:00, shut Monday through Friday).
@@ -219,7 +226,7 @@ the event's title beside its course, synced and exported with your completion
 history; and the watch app gained its own walls for gated apps, which read the
 app in front, cover it with a wall screen and remove its notifications, all on
 the watch. Also brought back playing your own music as the study sound, inside
-the app: WakeProof reads the music files in a folder you pick, or in your
+the app: Euler's Lab reads the music files in a folder you pick, or in your
 music library if you allow music and audio access, only to play them on the
 device, and uploads nothing.
 
@@ -243,14 +250,14 @@ gated-app schedule description to reflect direct access during the
 Monday–Thursday open window and the Friday–Sunday shutdown instead of a
 five-minute countdown wait.
 
-**27 October 2026** — removed music playback from your own phone: WakeProof no
+**27 October 2026** — removed music playback from your own phone: Euler's Lab no
 longer reads music files or asks for the music and audio permission. Study
-music is Spotify again, as before 7 October — WakeProof only opens the Spotify
+music is Spotify again, as before 7 October — Euler's Lab only opens the Spotify
 app (or a playlist link you saved) and sends it play/pause/skip keys; it does
 not sign in to Spotify or exchange any data with it. Also noted that the
 on-screen-app check holds social, video and messaging apps behind walls and
 keeps apps outside your focus list shut during a focus session, and that your
-agenda can appear on the WakeProof home screen — all on-device, with no new
+agenda can appear on the Euler's Lab home screen — all on-device, with no new
 permission.
 
 **7 October 2026** — added music playback from your own phone (a folder you
@@ -266,4 +273,4 @@ snapshot your phone sends to a paired watch.
 
 ## Contact
 
-Questions or requests: **ogenrwotdaniel@gmail.com**
+Questions or requests: **ogenrwotdaniel@unist.ac.kr**

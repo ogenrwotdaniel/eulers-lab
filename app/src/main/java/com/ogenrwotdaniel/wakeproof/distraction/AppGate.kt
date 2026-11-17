@@ -9,9 +9,8 @@ import com.ogenrwotdaniel.wakeproof.BuildConfig
 
 /**
  * Social, video, messaging and feed apps — and browsers, while
- * [WallRule.GATE_BROWSERS] is on — are walled by [AppBlockService] all day
- * Monday through Friday and outside the Saturday–Sunday 14:00–16:00 open window
- * (2026-11-14).
+ * [WallRule.GATE_BROWSERS] is on — are walled by [AppBlockService] outside
+ * the daily 12:25–12:50 open window (2026-11-16).
  *
  * Inside that window they open directly with no countdown wait and no separate
  * 25-minute budget (both deleted 2026-11-06). Outside it they are covered by
@@ -260,7 +259,7 @@ enum class GateVerdict {
  * 6. Outside a session, gated and [capped] apps while Notification History is on.
  * 7. An app whose daily cap is spent is walled until midnight (or next open window).
  * 8. A gated app in exam week ([GateVerdict.EXAM_WALL]); otherwise shut outside the
- *    Saturday–Sunday open window or all day Monday–Friday ([GateVerdict.WINDOW_WALL]).
+ *    daily open window ([GateVerdict.WINDOW_WALL]).
  *    The caller scopes [examWeek] and [outsideWindow] to gated apps. Each has its
  *    own verdict so the wall says why without working it out again.
  * 9. For gated apps inside the window: the bedtime wall; otherwise

@@ -40,9 +40,6 @@ interface AlarmDao : SyncDao<Alarm> {
     @Query("SELECT * FROM alarms WHERE id = :id AND deleted = 0")
     suspend fun getById(id: Long): Alarm?
 
-    @Query("SELECT * FROM alarms WHERE enabled = 1 AND deleted = 0")
-    suspend fun getEnabled(): List<Alarm>
-
     @Query(
         "SELECT * FROM alarms WHERE type = :type AND deleted = 0 " +
             "ORDER BY hour, minute LIMIT 1"

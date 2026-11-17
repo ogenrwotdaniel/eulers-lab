@@ -49,11 +49,6 @@ class DistractionLimitRepository @Inject constructor(
 
     suspend fun currentLimits(): Map<String, AppLimit> = limits.first()
 
-    /** Just the packages walled off once their cap is spent. */
-    val blockedPackages: Flow<Set<String>> = limits.map { all ->
-        all.filterValues { it.mode == LimitMode.BLOCK }.keys
-    }
-
     /**
      * Asks for a cap change. [minutes] null or ≤ 0 means remove the cap.
      * True when it was applied.

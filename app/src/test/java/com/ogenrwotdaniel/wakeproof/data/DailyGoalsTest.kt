@@ -93,11 +93,8 @@ class DailyGoalsTest {
         )
         // Water asks for nothing: no screen is left that could ever log it.
         assertEquals(DailyGoals(pushupTarget = 0, reviewTarget = 1), goals)
-        assertEquals(DayOutcome.MET, dayOutcome(logs(log(GoalKind.REVIEW)), goals))
-        assertEquals(
-            DayOutcome.MISSED,
-            dayOutcome(logs(log(GoalKind.REVIEW, CompletionStatus.SKIPPED)), goals)
-        )
+        assertEquals(1, reviewsDone(logs(log(GoalKind.REVIEW))))
+        assertEquals(0, reviewsDone(logs(log(GoalKind.REVIEW, CompletionStatus.SKIPPED))))
     }
 
     @Test
@@ -132,61 +129,25 @@ class DailyGoalsTest {
         assertEquals(0, dailyGoalsFrom(weekdayPushups, DayOfWeek.SATURDAY).pushupTarget)
     }
 
-    // --- scoring one day ------------------------------------------------------
+    // --- counting one day (Home's progress cards) -----------------------------
 
     @Test
-    fun `a day meeting every goal is MET`() {
-        val goals = DailyGoals(pushupTarget = 1, reviewTarget = 2)
-        val met = logs(
-            log(GoalKind.PUSHUP),
-            log(GoalKind.REVIEW),
-            log(GoalKind.REVIEW)
-        )
-        assertEquals(DayOutcome.MET, dayOutcome(met, goals))
+    fun `an unverified review still counts, an unverified pushup does not`() {
+        assertEquals(1, reviewsDone(logs(log(GoalKind.REVIEW, CompletionStatus.UNVERIFIED))))
+        assertEquals(0, pushupsVerified(logs(log(GoalKind.PUSHUP, CompletionStatus.UNVERIFIED))))
+        assertEquals(1, pushupsVerified(logs(log(GoalKind.PUSHUP))))
     }
 
     @Test
-    fun `an unverified plan still counts toward the target`() {
-        val goals = DailyGoals(pushupTarget = 0, reviewTarget = 1)
-        val honor = logs(log(GoalKind.REVIEW, CompletionStatus.UNVERIFIED))
-        assertEquals(DayOutcome.MET, dayOutcome(honor, goals))
+    fun `an emergency dismiss counts toward nothing`() {
+        val day = logs(log(GoalKind.REVIEW), log(GoalKind.REVIEW, CompletionStatus.SKIPPED))
+        assertEquals(1, reviewsDone(day))
     }
 
     @Test
-    fun `an unverified pushup does not count`() {
-        val goals = DailyGoals(pushupTarget = 1, reviewTarget = 0)
-        val honor = logs(log(GoalKind.PUSHUP, CompletionStatus.UNVERIFIED))
-        assertEquals(DayOutcome.MISSED, dayOutcome(honor, goals))
-    }
-
-    @Test
-    fun `an emergency dismiss anywhere in the day misses it`() {
-        val goals = DailyGoals(pushupTarget = 1, reviewTarget = 1)
-        val skipped = logs(
-            log(GoalKind.PUSHUP),
-            log(GoalKind.REVIEW),
-            log(GoalKind.REVIEW, CompletionStatus.SKIPPED)
-        )
-        assertEquals(DayOutcome.MISSED, dayOutcome(skipped, goals))
-    }
-
-    @Test
-    fun `a math target is met by a solved run`() {
-        val goals = DailyGoals(pushupTarget = 0, reviewTarget = 0, mathTarget = 1)
-        assertEquals(DayOutcome.MET, dayOutcome(logs(log(GoalKind.MATH)), goals))
-        assertEquals(DayOutcome.MISSED, dayOutcome(emptyList(), goals))
-    }
-
-    @Test
-    fun `a day with no goals is neither won nor lost`() {
-        assertEquals(DayOutcome.NO_GOALS, dayOutcome(emptyList(), DailyGoals(0, 0)))
-    }
-
-    @Test
-    fun `extra completions beyond the target still count as met`() {
-        val goals = DailyGoals(pushupTarget = 0, reviewTarget = 1)
+    fun `extra completions are all counted`() {
         val plenty = logs(log(GoalKind.REVIEW), log(GoalKind.REVIEW), log(GoalKind.REVIEW))
-        assertEquals(DayOutcome.MET, dayOutcome(plenty, goals))
+        assertEquals(3, reviewsDone(plenty))
     }
 
     // --- the streak walk ------------------------------------------------------

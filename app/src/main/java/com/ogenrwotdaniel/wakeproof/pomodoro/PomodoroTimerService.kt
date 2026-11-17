@@ -281,6 +281,13 @@ class PomodoroTimerService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    private fun resumeTimer() {
+        _state.update { it.copy(running = true) }
+        startTicker()
+        updateNotification()
+        syncWatch()
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_START -> {
@@ -385,16 +392,12 @@ class PomodoroTimerService : Service() {
             // and no stop, from any caller — this screen, the notification, the
             // floating bubble or the watch. It ends when its last block does.
             // Pause was the two-tap way out of every session and stop the
-            // one-tap way; reset is gone altogether. Resume stays, for a
-            // session paused by a build from before this rule.
-            ACTION_PAUSE -> Unit
-            ACTION_RESUME -> {
-                _state.update { it.copy(running = true) }
-                startTicker()
-                updateNotification()
-                syncWatch()
-            }
-            ACTION_STOP -> if (!_state.value.active) stopSelf()
+            // one-tap way; all three are gone. Resume stays, for a session
+            // paused by a build from before this rule.
+            // Only a session can be resumed: an old watch's stray "timer_resume" must not
+            // start a ticker over an empty state. Ignored, never a stopSelf, like the
+            // music skips below: a start, join or restore may still be on its way.
+            ACTION_RESUME -> if (_state.value.active) resumeTimer()
             // Skipping a song never touches the session. Ignored without a session, never a stopSelf: a start, join or
             // restore may still be on its way to making the session active.
             ACTION_MUSIC_NEXT, ACTION_MUSIC_PREVIOUS ->
@@ -1217,7 +1220,7 @@ class PomodoroTimerService : Service() {
 
     private fun buildNotification(text: String): Notification {
         val s = _state.value
-        // No Pause or Stop actions: a session has no way out (see ACTION_PAUSE).
+        // No Pause or Stop actions: a session has no way out (see ACTION_RESUME).
         val builder = Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle("Pomodoro — ${s.phase.label}")
@@ -1247,9 +1250,7 @@ class PomodoroTimerService : Service() {
         val state: StateFlow<PomodoroState> = _state.asStateFlow()
 
         private const val ACTION_START = "com.ogenrwotdaniel.wakeproof.action.POMODORO_START"
-        private const val ACTION_PAUSE = "com.ogenrwotdaniel.wakeproof.action.POMODORO_PAUSE"
         private const val ACTION_RESUME = "com.ogenrwotdaniel.wakeproof.action.POMODORO_RESUME"
-        private const val ACTION_STOP = "com.ogenrwotdaniel.wakeproof.action.POMODORO_STOP"
         private const val ACTION_RESTORE = "com.ogenrwotdaniel.wakeproof.action.POMODORO_RESTORE"
         private const val ACTION_JOIN = "com.ogenrwotdaniel.wakeproof.action.POMODORO_JOIN"
         private const val ACTION_MUSIC_NEXT = "com.ogenrwotdaniel.wakeproof.action.MUSIC_NEXT"
@@ -1385,11 +1386,7 @@ class PomodoroTimerService : Service() {
         @Volatile var runningSessionId: String = ""
             private set
 
-        /** Refused while a session is active — kept for the watch's command path. */
-        fun pause(context: Context) = context.startService(intent(context, ACTION_PAUSE))
         fun resume(context: Context) = context.startService(intent(context, ACTION_RESUME))
-        /** Refused while a session is active — kept for the watch's command path. */
-        fun stop(context: Context) = context.startService(intent(context, ACTION_STOP))
 
         /**
          * Brings back a session the process lost (reboot, force-stop, killed).

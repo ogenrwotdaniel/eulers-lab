@@ -37,4 +37,21 @@ class ExamShutUntilTest {
         for (pkg in named) assertTrue("$pkg missing on the watch", "\"$pkg\"" in source)
         assertTrue(AppGate.GOOGLE_APP in source && AppGate.PLAY_STORE in source)
     }
+
+    /** The watch's schedule is a hand copy too; a window change made on one side only would pass both modules' tests. */
+    @Test
+    fun `the watch's copy of the open window matches the phone's`() {
+        val watch = File("../wear/src/main/java/com/ogenrwotdaniel/wakeproof/wear/walls/WatchWalls.kt")
+        org.junit.Assume.assumeTrue("watch source not beside the phone module", watch.exists())
+        val source = watch.readText()
+        fun minutes(name: String): Int {
+            val m = Regex("const val $name = (\\d+) \\* 60(?: \\+ (\\d+))?").find(source)
+                ?: error("$name not found on the watch")
+            return m.groupValues[1].toInt() * 60 + (m.groupValues[2].ifEmpty { "0" }).toInt()
+        }
+        val rules = com.ogenrwotdaniel.wakeproof.distraction.WallRules()
+        assertEquals(rules.openWindowStartMinutes, minutes("OPEN_WINDOW_START_MINUTES"))
+        assertEquals(rules.openWindowEndMinutes, minutes("OPEN_WINDOW_END_MINUTES"))
+        assertEquals(rules.bedtimeStartMinutes, minutes("BEDTIME_START_MINUTES"))
+    }
 }

@@ -94,23 +94,6 @@ fun mathsSolved(dayLogs: List<CompletionLog>): Int =
     dayLogs.count { it.kind == GoalKind.MATH && it.status == CompletionStatus.VERIFIED }
 
 /**
- * Scores one day. Pure, so the streak rule is testable without Room, a clock or
- * a device.
- *
- * An emergency dismiss anywhere in the day is decisive: it is the escape hatch,
- * and a day that used it did not meet its goals however the counts land.
- */
-fun dayOutcome(dayLogs: List<CompletionLog>, goals: DailyGoals): DayOutcome = when {
-    !goals.hasAny -> DayOutcome.NO_GOALS
-    dayLogs.any { it.status == CompletionStatus.SKIPPED } -> DayOutcome.MISSED
-    pushupsVerified(dayLogs) >= goals.pushupTarget &&
-        mathsSolved(dayLogs) >= goals.mathTarget &&
-        reviewsDone(dayLogs) >= goals.reviewTarget -> DayOutcome.MET
-
-    else -> DayOutcome.MISSED
-}
-
-/**
  * Scores one day for the STREAK, which since 2026-10-07 is about focus time
  * alone: a day counts once the daily focus goal is reached.
  *

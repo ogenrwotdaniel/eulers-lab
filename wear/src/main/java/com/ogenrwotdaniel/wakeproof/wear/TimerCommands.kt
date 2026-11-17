@@ -13,7 +13,7 @@ import kotlinx.coroutines.tasks.await
  * keep the two copies in step.
  *
  * MessageClient, not DataClient, and for a reason worth not undoing: a DataItem
- * is state, so sending "pause" twice writes the same bytes twice and the second
+ * is state, so sending "start" twice writes the same bytes twice and the second
  * one raises no event at all. A command is an event and has to be delivered
  * every time.
  */
@@ -22,9 +22,7 @@ internal object TimerCommands {
     const val PATH = "/wakeproof/command"
 
     const val START = "timer_start"
-    const val PAUSE = "timer_pause"
     const val RESUME = "timer_resume"
-    const val STOP = "timer_stop"
 
     /**
      * `agenda_done:<event key>` — ticks a calendar event on the phone, which

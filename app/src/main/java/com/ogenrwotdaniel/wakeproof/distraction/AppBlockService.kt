@@ -73,9 +73,8 @@ import java.time.LocalTime
  * * [LimitMode.BLOCK] caps — once an app's daily allowance is spent,
  *   [BlockedActivity] is thrown in front of it until midnight (or next open
  *   window for gated apps). No override.
- * * The [WallRules] in front of gated apps ([AppGate]): completely shut Monday
- *   through Friday, open Saturday and Sunday only inside the 14:00–16:00 window
- *   with no countdown wait or separate daily budget, and shut at bedtime.
+ * * The [WallRules] in front of gated apps ([AppGate]): open only inside the
+ *   daily 12:25–12:50 window with no countdown wait or separate daily budget, and shut at bedtime.
  *
  * Losing either grant ends enforcement, so it is announced loudly and repeatedly
  * ([announceWallDown], [sync]) and, mid-session, costs the block's tree.
@@ -153,37 +152,54 @@ class AppBlockService : Service() {
      * and 18:00–20:00 hours and during focus sessions): Camera, Notes, Claude,
      * Gemini, Smart-Check, AnyOTP, Outlook, KakaoBank, Clock, Calendar, and
      * system file/photo pickers. Between 20:00 and 03:00 ([sleepWallActive]),
-     * only [sleepExempt] remains open.
+     * only [sleepExempt] remains open, and on the phone its cameras ([nightExemptAt]).
      */
     private val dayToolsExempt: Set<String>
-        get() {
-            nightCameras?.let { return it }
-            val now = SystemClock.elapsedRealtime()
-            val base = sleepExempt +
-                com.ogenrwotdaniel.wakeproof.launcher.NAMED_TOOLS +
-                com.ogenrwotdaniel.wakeproof.launcher.SYSTEM_DOCUMENT_PICKERS
-            if (now - nightCamerasTriedAt < NIGHT_CAMERAS_RETRY_MILLIS) return nightCamerasGuess ?: base
-            nightCamerasTriedAt = now
-            val cameras = runCatching {
-                packageManager.queryIntentActivities(
-                    Intent(android.provider.MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA), 0
-                ).mapNotNull { it.activityInfo }
-                    .filter { it.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM != 0 }
-                    .map { it.packageName }
-            }.getOrNull().orEmpty()
-            val all = base + cameras
-            if (cameras.isNotEmpty()) nightCameras = all
-            nightCamerasGuess = all
-            return all
-        }
+        get() = sleepExempt +
+            com.ogenrwotdaniel.wakeproof.launcher.NAMED_TOOLS +
+            com.ogenrwotdaniel.wakeproof.launcher.SYSTEM_DOCUMENT_PICKERS +
+            cameraPackages()
 
-    private fun nightExemptAt(minuteOfDay: Int): Set<String> =
-        if (sleepWallActive(minuteOfDay)) sleepExempt else dayToolsExempt
+    /**
+     * What the night wall leaves open at [minuteOfDay]. In bed hours the phone keeps
+     * its cameras too (the user, 2026-11-13: "except phone, camera, calendar,
+     * wakeproof right from 6pm to 8am"), as its wall copy says; until 2026-11-16 they
+     * were walled from 20:00. The tablet keeps the sleep wall's clock and calendar.
+     */
+    private fun nightExemptAt(minuteOfDay: Int): Set<String> = when {
+        !sleepWallActive(minuteOfDay) -> dayToolsExempt
+        phone -> sleepExempt + cameraPackages()
+        else -> sleepExempt
+    }
+
+    /**
+     * The preinstalled cameras (the apps answering the still-camera intent) and
+     * Expert RAW. Kept once a camera is found; an empty reading (PackageManager not
+     * ready) is retried after [NIGHT_CAMERAS_RETRY_MILLIS].
+     */
+    private fun cameraPackages(): Set<String> {
+        nightCameras?.let { return it }
+        val now = SystemClock.elapsedRealtime()
+        val raw = setOf(com.ogenrwotdaniel.wakeproof.launcher.EXPERT_RAW)
+        if (now - nightCamerasTriedAt < NIGHT_CAMERAS_RETRY_MILLIS) return nightCamerasGuess ?: raw
+        nightCamerasTriedAt = now
+        val cameras = runCatching {
+            packageManager.queryIntentActivities(
+                Intent(android.provider.MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA), 0
+            ).mapNotNull { it.activityInfo }
+                .filter { it.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_SYSTEM != 0 }
+                .map { it.packageName }
+        }.getOrNull().orEmpty()
+        val all = raw + cameras
+        if (cameras.isNotEmpty()) nightCameras = all
+        nightCamerasGuess = all
+        return all
+    }
 
     @Volatile private var nightCamerasTriedAt = -NIGHT_CAMERAS_RETRY_MILLIS
     @Volatile private var nightCamerasGuess: Set<String>? = null
 
-    /** [dayToolsExempt] once it has been read with a camera in it. */
+    /** [cameraPackages] once it has been read with a camera in it. */
     @Volatile private var nightCameras: Set<String>? = null
 
     /** Open through the 20:00–03:00 sleep wall: the clock (to check the alarm) and the calendar. */
@@ -223,7 +239,7 @@ class AppBlockService : Service() {
 
     /**
      * The local clock cannot be believed ([clockUntrusted]). Every wall reads it,
-     * so a hand-set one could put the phone inside the weekend 14:00-16:00 window, or outside the
+     * so a hand-set one could put the phone inside the daily 12:25-12:50 window, or outside the
      * night, or past a session's end, at will.
      */
     @Volatile private var clockDoubted = false
@@ -391,9 +407,14 @@ class AppBlockService : Service() {
         scope.launch {
             wallRulesRepository.rules.collect { next ->
                 val browsersChanged = next.gateBrowsers != rules.gateBrowsers
+                val windowChanged = gatedOpenWindow(next) != gatedOpenWindow(rules)
                 rules = next
                 rulesLoaded.complete(Unit)
                 if (browsersChanged) gatedCache.clear()
+                // The ongoing notice was built from the defaults before the stored rules loaded.
+                if (windowChanged) {
+                    getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, buildNotification())
+                }
             }
         }
         // Re-read each new day, so exam week starts and lifts at midnight.
@@ -421,6 +442,7 @@ class AppBlockService : Service() {
                 }
                 val held = heldRead.orEmpty()
                 val examWeekBefore = examWeek
+                var weekTomorrow: ExamWeek? = null
                 examWeek = try {
                     val rows = examDao.observeUpcoming(today).first()
                         .map { ExamRow(it.syncId, it.name, it.epochDay, it.updatedAt) }
@@ -464,18 +486,30 @@ class AppBlockService : Service() {
                     }
                     // Holds unreadable: the week known before still stands until its exam.
                     val fromMemory = if (heldRead == null) listOfNotNull(examWeek) else emptyList()
+                    weekTomorrow = examWeekHeld(exams, keep + fromMemory, today + 1)
                     examWeekHeld(exams, keep + fromMemory, today)
                 } catch (e: kotlinx.coroutines.CancellationException) {
                     throw e
                 } catch (_: Exception) {
                     // The last week known, too, while its exam has not passed: it may come
                     // from an exam not yet held.
-                    examWeekHeld(emptyList(), held + listOfNotNull(examWeek?.takeIf { it.epochDay >= today }), today)
+                    val known = held + listOfNotNull(examWeek?.takeIf { it.epochDay >= today })
+                    weekTomorrow = examWeekHeld(emptyList(), known, today + 1)
+                    examWeekHeld(emptyList(), known, today)
                 }
+                examWeekTomorrow = weekTomorrow
                 // The watch walls its gated apps through exam week too (`exam_shut_until`
                 // on /wakeproof/stats): tell it as soon as the week begins, moves or lifts.
-                if (examWeek != examWeekBefore) launch { runCatching { wearStatsSync.push() } }
-                delay(EXAM_WEEK_REFRESH_MILLIS)
+                if (examWeek != examWeekBefore) {
+                    launch { runCatching { wearStatsSync.push() } }
+                    // The ongoing notice names exam week while it lasts.
+                    getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, buildNotification())
+                }
+                // Woken at midnight too, so a week (or tomorrow's) is never read a day stale.
+                val untilMidnight = java.time.Duration.between(
+                    LocalDateTime.now(), LocalDate.now().plusDays(1).atStartOfDay()
+                ).toMillis() + 1_000L
+                delay(minOf(EXAM_WEEK_REFRESH_MILLIS, untilMidnight.coerceAtLeast(1_000L)))
             }
         }
         // The phone's owed summary, heard here so the tablet starts no session through it.
@@ -852,10 +886,8 @@ class AppBlockService : Service() {
             onFocusList = current in focusList || current in dayToolsExempt,
             capSpent = capSpent,
             gated = gated,
-            outsideWindow = gated && windowShutActive(
-                dayOfWeek = now.dayOfWeek,
+            outsideWindow = gated && outsideOpenWindow(
                 minuteOfDay = minuteOfDay,
-                weekendShut = rules.weekendShut,
                 startMinutes = rules.openWindowStartMinutes,
                 endMinutes = rules.openWindowEndMinutes
             ),
@@ -933,27 +965,18 @@ class AppBlockService : Service() {
                 label = label,
                 usedMinutes = limit?.minutes ?: 0,
                 capMinutes = limit?.minutes ?: 0,
-                reopensAt = nextOpenFor(current, now.dayOfWeek)
+                reopensAt = nextOpenFor(current)
             )
             GateVerdict.EXAM_WALL -> {
                 // Read once: the state is volatile. Gone by now means the week just ended;
                 // the next tick lets the app through.
-                val exam = examWeek
-                BlockedActivity.ruleIntent(
-                    this,
-                    "Exam week",
-                    (exam?.let { "${it.name} is on ${LocalDate.ofEpochDay(it.epochDay).format(EXAM_DAY_FORMAT)}. " } ?: "") +
-                        "$label and every other gated app stay shut until it is over. " +
-                        "The phone and SMS always work."
-                )
+                BlockedActivity.ruleIntent(this, "Exam week", examWallBody(label, examWeek))
             }
             GateVerdict.WINDOW_WALL -> {
                 val open = openWindow()
                 val (headline, body) = windowWallCopy(
                     label = label,
-                    today = now.dayOfWeek,
                     minuteOfDay = minuteOfDay,
-                    weekendShut = rules.weekendShut,
                     startMinutes = open.first,
                     endMinutes = open.second,
                     formatClock = ::clock
@@ -1120,18 +1143,17 @@ class AppBlockService : Service() {
         return true
     }
 
-    /** Next opening phrase after today for [current] if gated (`"tomorrow at 14:00"`, `"Saturday at 14:00"`). */
-    private fun nextOpenFor(current: String, today: java.time.DayOfWeek): String? {
+    /** Next opening phrase after today for [current] if gated (`"tomorrow at 12:25"`). */
+    private fun nextOpenFor(current: String): String? {
         // Exam week shuts gated apps all day until the exam is over.
-        examWeek?.takeIf { gatedCache[current] == true }?.let { exam ->
+        // Today's, or the one starting at midnight: tomorrow's window is then the exam's.
+        (examWeek ?: examWeekTomorrow)?.takeIf { gatedCache[current] == true }?.let { exam ->
             return "after ${exam.name} (${LocalDate.ofEpochDay(exam.epochDay).format(EXAM_DAY_FORMAT)})"
         }
         val gated = gatedCache[current] ?: false
         val open = openWindow()
         return nextOpenAfterToday(
             gated = gated,
-            today = today,
-            weekendShut = rules.weekendShut,
             startMinutes = open.first,
             endMinutes = open.second,
             formatClock = ::clock
@@ -1143,6 +1165,12 @@ class AppBlockService : Service() {
      * held exam since deleted or moved: a begun week never lifts early.
      */
     @Volatile private var examWeek: ExamWeek? = null
+
+    /**
+     * The exam week that will stand tomorrow, from the same holds as [examWeek]: a
+     * cap wall must not promise tomorrow's window to a day an exam week takes.
+     */
+    @Volatile private var examWeekTomorrow: ExamWeek? = null
 
     /** Night reminders and the held exam week share one file. */
     private val nightPrefs by lazy {
@@ -1874,11 +1902,23 @@ class AppBlockService : Service() {
         )
     }
 
+    /**
+     * The window in force ([openWindow]), not the fixed one: a stricter window or
+     * bedtime kept from the editable build must not be promised away here.
+     */
+    private fun openingLine(): String {
+        examWeek?.let { return "Exam week: gated apps stay shut until ${it.name} is over." }
+        val (start, end) = gatedOpenWindow(rules)
+            // No window: [outsideOpenWindow] walls nothing for it.
+            ?: return "Gated apps keep to bedtime, night and focus walls."
+        return if (end <= start) "Gated apps are shut all day."
+        else "Gated apps open daily ${clock(start)}–${clock(end)} only."
+    }
+
     private fun buildNotification(): Notification = Notification.Builder(this, CHANNEL_ID)
         .setSmallIcon(R.drawable.ic_launcher_foreground)
         .setContentTitle("Distractions are behind a wall")
-        .setContentText("Gated apps open Sat–Sun ${clock(WallRule.OPEN_WINDOW_START_MINUTES.default)}–" +
-                "${clock(WallRule.OPEN_WINDOW_END_MINUTES.default)} only. Spent and off-focus apps stay shut.")
+        .setContentText(openingLine() + " Spent and off-focus apps stay shut.")
         .setOngoing(true)
         .setContentIntent(
             PendingIntent.getActivity(
@@ -1902,6 +1942,45 @@ class AppBlockService : Service() {
 
         /** Whether the foreground wall service is currently running. */
         fun isRunning(): Boolean = instance != null
+
+        /**
+         * Exam week as this service would judge it, for walls that stand in while it
+         * is down (the launcher's fallback, the notification guard, the watch's
+         * `exam_shut_until`): the stored holds and the upcoming exam rows, so an exam
+         * added while the service was down counts too. Null on an ordinary day or a
+         * failed read.
+         */
+        suspend fun fallbackExamWeek(
+            context: Context,
+            examDao: com.ogenrwotdaniel.wakeproof.data.db.ExamDao,
+            today: Long = LocalDate.now().toEpochDay()
+        ): ExamWeek? = try {
+            readExamWeek(context, examDao, today)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            null
+        }
+
+        /** [fallbackExamWeek] that throws on a failed read, for a caller that keeps what it knew. */
+        suspend fun readExamWeek(
+            context: Context,
+            examDao: com.ogenrwotdaniel.wakeproof.data.db.ExamDao,
+            today: Long = LocalDate.now().toEpochDay()
+        ): ExamWeek? {
+            val exams = examDao.observeUpcoming(today).first().map { it.name to it.epochDay }
+            // Off the main thread: the first read loads the prefs file (a launcher tap).
+            val held = withContext(Dispatchers.IO) {
+                storedExamHolds(context) ?: error("exam holds unreadable")
+            }
+            return examWeekHeld(exams, held, today)
+        }
+
+        /** The exam wall's body, the same from the service and from the launcher's fallback. */
+        fun examWallBody(label: String, exam: ExamWeek?): String =
+            (exam?.let { "${it.name} is on ${LocalDate.ofEpochDay(it.epochDay).format(EXAM_DAY_FORMAT)}. " } ?: "") +
+                "$label and every other gated app stay shut until it is over. " +
+                "The phone and SMS always work."
 
         /**
          * The exam week this service holds now (null on an ordinary day), and whether

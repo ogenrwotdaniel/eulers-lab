@@ -99,7 +99,6 @@ object ClipCodec {
     private val random = SecureRandom()
     private val json = Json { ignoreUnknownKeys = true; explicitNulls = true; encodeDefaults = true }
 
-    fun newKey(): ByteArray = ByteArray(KEY_BYTES).also(random::nextBytes)
     fun newNonce(): ByteArray = ByteArray(NONCE_BYTES).also(random::nextBytes)
 
     // ---- base64url, no padding ----

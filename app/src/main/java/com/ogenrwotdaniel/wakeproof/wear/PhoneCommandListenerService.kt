@@ -61,11 +61,9 @@ class PhoneCommandListenerService : WearableListenerService() {
         }
         when (command) {
             WearContract.CMD_TIMER_START -> PomodoroTimerService.start(applicationContext)
-            // Pause and stop are refused by the timer while a session runs
-            // (nuclear focus); passed on anyway so the rule lives in one place.
-            WearContract.CMD_TIMER_PAUSE -> PomodoroTimerService.pause(applicationContext)
             WearContract.CMD_TIMER_RESUME -> PomodoroTimerService.resume(applicationContext)
-            WearContract.CMD_TIMER_STOP -> PomodoroTimerService.stop(applicationContext)
+            // Pause and stop are gone (nuclear focus: a session has no way out), so an
+            // old watch's "timer_pause" / "timer_stop" lands here and does nothing.
             // An unknown command is a watch running a newer build than the
             // phone. Ignoring it is the right answer: the alternative is
             // crashing the listener that also carries the commands we do know.

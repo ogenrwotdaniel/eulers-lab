@@ -139,7 +139,7 @@ fun LauncherScreen(
         if (granted) viewModel.refresh()
     }
 
-    // Gated apps open directly inside their Sat–Sun 14:00–16:00 window (no wait)
+    // Gated apps open directly inside their daily 12:25–12:50 window (no wait)
     // and hit BlockedActivity via onLaunch outside it. Non-gated capped apps
     // keep the 45 s mindful pause; everything else opens at once.
     val open: (InstalledApp) -> Unit = { app ->
