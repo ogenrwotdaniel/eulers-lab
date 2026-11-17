@@ -18,9 +18,11 @@
 \usepackage{caption}
 \usepackage[most]{tcolorbox}
 \usepackage{tikz}
+\usepackage{float}
+\usepackage{needspace}
 \usepackage{hyperref}
 
-% WakeProof Website Brand Palette
+% Euler's Lab website brand palette
 \definecolor{wpnavy}{HTML}{1B2A4A}
 \definecolor{wpnavy2}{HTML}{27406E}
 \definecolor{wpteal}{HTML}{1F9B8E}
@@ -40,10 +42,10 @@
   linkcolor=wpnavy,
   urlcolor=wpteal,
   citecolor=wpteal,
-  pdftitle={WakeProof — Complete Product \& Technical Documentation},
+  pdftitle={Euler's Lab (formerly WakeProof) — Product \& Technical Documentation},
   pdfauthor={Ogenrwot Daniel},
   pdfsubject={Android Alarm, Deep Focus, Study Suite, Distraction Walls \& Multi-Device Sync},
-  pdfkeywords={WakeProof, Android, Wear OS, ML Kit, CameraX, Pomodoro, SM-2, Distraction Blocker}
+  pdfkeywords={Euler's Lab, WakeProof, Android, Wear OS, ML Kit, CameraX, Pomodoro, SM-2, Distraction Blocker}
 }
 
 \setlength{\parindent}{0pt}
@@ -115,7 +117,7 @@
 % Header & Footer
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[L]{\sffamily\footnotesize\textcolor{wpmuted}{\textbf{WakeProof} $\cdot$ Complete Feature \& Architecture Guide (v1.9)}}
+\fancyhead[L]{\sffamily\footnotesize\textcolor{wpmuted}{\textbf{Euler's Lab} $\cdot$ Feature \& Architecture Guide (v2.0)}}
 \fancyhead[R]{\sffamily\footnotesize\textcolor{wpmuted}{\href{https://ogenrwotdaniel.github.io/wakeproof/}{ogenrwotdaniel.github.io/wakeproof}}}
 \fancyfoot[L]{\sffamily\footnotesize\textcolor{wpmuted}{Ogenrwot Daniel $\cdot$ GPL-3.0 Open Source}}
 \fancyfoot[R]{\sffamily\footnotesize\textcolor{wpnavy}{\textbf{Page \thepage}}}
@@ -139,14 +141,14 @@
 \thispagestyle{empty}
 \begin{heroheader}
   {\sffamily\scriptsize\bfseries\textcolor{wpteal}{ANDROID 14+ $\cdot$ TABLET ADAPTIVE $\cdot$ WEAR OS COMPANION $\cdot$ GNOME CLIPBOARD PEER}}\\[6pt]
-  {\sffamily\Huge\bfseries\textcolor{white}{WakeProof}}\\[4pt]
+  {\sffamily\Huge\bfseries\textcolor{white}{Euler's Lab}}\\[4pt]
   {\sffamily\large\textcolor{white!92}{The alarm you cannot talk your way out of --- and the study \& focus system that guards the rest of your day.}}\\[10pt]
   {\sffamily\small\textcolor{white!80}{%
-    \textbf{Version:} 1.9.0 (November 2026) \quad|\quad
+    \textbf{Version:} 2.0.0 (November 2026) \quad|\quad
     \textbf{Author:} Ogenrwot Daniel \quad|\quad
     \textbf{License:} GPL-3.0\\[3pt]
     \textbf{Web:} \href{https://ogenrwotdaniel.github.io/wakeproof/}{\textcolor{white}{\underline{ogenrwotdaniel.github.io/wakeproof}}} \quad|\quad
-    \textbf{Source:} \href{https://github.com/ogenrwotdaniel/wakeproof}{\textcolor{white}{\underline{github.com/ogenrwotdaniel/wakeproof}}} \quad|\quad
+    \textbf{Source:} \href{https://github.com/ogenrwotdaniel/eulers-lab}{\textcolor{white}{\underline{github.com/ogenrwotdaniel/eulers-lab}}} \quad|\quad
     \textbf{Privacy:} \href{https://ogenrwotdaniel.github.io/wakeproof/privacy/}{\textcolor{white}{\underline{/wakeproof/privacy}}}%
   }}
 \end{heroheader}
@@ -154,14 +156,14 @@
 \vspace{6pt}
 
 \begin{wpbox}[wpnavy]{Executive Summary}
-Most productivity tools fail at the exact moment willpower is lowest: at \textbf{06:05} when a sleepy thumb hits \emph{Snooze}, mid-lecture when a 25-minute timer offers a one-tap \emph{Stop} button, or at night when ``just five minutes'' of short-form video becomes two hours.
+Most productivity tools fail at the exact moment willpower is lowest: at \textbf{03:00} when a sleepy thumb hits \emph{Snooze}, mid-lecture when a 25-minute timer offers a one-tap \emph{Stop} button, or at night when ``just five minutes'' of short-form video becomes two hours.
 
-\textbf{WakeProof} eliminates negotiation across the entire daily cycle while remaining \textbf{private and offline-first by design}:
+\textbf{Euler's Lab} (formerly \emph{WakeProof}, renamed after the mathematician Leonhard Euler, 1707--1783) is a personal, sideloaded study and research instrument. It removes the negotiation across the whole day while staying \textbf{private and offline-first}:
 \begin{enumerate}
-  \item \textbf{Physical-Proof Morning Alarms:} Alarms carry no dismiss button. Ringing stops only after live on-device ML~Kit pose detection counts your push-ups, you photograph the day's written plan, you answer your due flashcards, or you solve an unbroken run of mental arithmetic.
-  \item \textbf{Nuclear Deep-Work Sessions:} Fixed-duration Pomodoro recipes (1\,h, 1\,h\,30, 2\,h, 3\,h, or exact calendar-event durations) have \textbf{no pause and no stop button}, walling non-study apps across your phone, tablet, and smartwatch simultaneously --- breaks included.
-  \item \textbf{Integrated Study Suite:} Spaced-repetition flashcards (SM-2) with optional Gemini AI card drafting, circular stereo soundscapes, Spotify transport control, Focus Forest tree-guarding, exam countdowns, parked thoughts, and an on-device weekly coach report.
-  \item \textbf{Hardened Distraction Schedule \& Minimalist Launcher:} Social, video, messaging, portal, and browser apps open \textbf{only Monday--Thursday from 08:10 to 08:50} and stay \textbf{completely shut Friday--Sunday}, backed by walls fixed in code (no setting moves or loosens them), notification/media guards, a night sleep wall (21:00--04:00), and a calm text-only home screen.
+  \item \textbf{Proof-of-Waking Alarms:} Alarms carry no dismiss button. Ringing stops only after on-device ML~Kit pose detection counts your push-ups, you answer your due flashcards, you solve an unbroken run of mental arithmetic, or (in the evening) you write tomorrow's top three.
+  \item \textbf{Nuclear Deep-Work Sessions:} Fixed sessions (1\,h, 1\,h\,30, 2\,h, 3\,h, or the exact length of a calendar event) have \textbf{no pause and no stop button}, walling non-study apps on phone, tablet and watch at once --- breaks included --- and end with a mandatory handwritten session summary.
+  \item \textbf{A Researcher's Study Suite:} SM-2 flashcards with optional Gemini drafting of proof skeletons and counterexample audits, a Socratic ``Euler referee'' chat, an open-question ledger, recall notes, exam-driven targets, seamless ambient loops or your own music, and an on-device weekly report.
+  \item \textbf{Fixed Distraction Walls \& Minimal Launcher:} Social, video, messaging, portal and browser apps open \textbf{only 12:25--12:50 every day}, behind walls fixed in code, notification and media guards, a night wall (\textbf{18:00--08:00} on the phone, \textbf{20:00--03:00} on the tablet), exam-week shutdowns and a calm text-only home screen.
 \end{enumerate}
 \end{wpbox}
 
@@ -179,7 +181,7 @@ Most productivity tools fail at the exact moment willpower is lowest: at \textbf
     {\sffamily\scriptsize\textbf{3. Honest Usage}} &
     {\sffamily\scriptsize\textbf{4. Daily Dashboard}}
   \end{tabular}
-  \caption{WakeProof across the day: zero-dismiss alarm screen, Pomodoro study timer, raw event-folded screen-time analytics, and the unified streak \& agenda dashboard.}
+  \caption{Across the day: the alarm screen with no dismiss button, the focus timer, event-folded screen time, and the streak \& agenda dashboard. (Screenshots predate the rename.)}
 \end{figure}
 
 \newpage
@@ -190,11 +192,12 @@ Most productivity tools fail at the exact moment willpower is lowest: at \textbf
 % =============================================================================
 % SECTION 1: MULTI-DEVICE ECOSYSTEM
 % =============================================================================
+\needspace{10\baselineskip}
 \section{Multi-Device Ecosystem \& Adaptive Design}
 
-WakeProof is designed as a cohesive personal system spanning a primary Android phone, a companion Android tablet, a Wear~OS smartwatch, and an optional Linux desktop clipboard peer. Every device plays an explicit hardware role rather than duplicating noise.
+Euler's Lab is one personal system spread over a primary Android phone, a companion Android tablet, a Wear~OS watch, and an Ubuntu laptop for the clipboard. Each device has an explicit role. The Android application ID stays \texttt{com.ogenrwotdaniel.wakeproof}, so installs, sync and watch pairing survived the rename.
 
-\begin{table}[ht!]
+\begin{table}[H]
 \centering
 \small
 \begin{tabularx}{\textwidth}{@{}L{3.1cm}L{3.3cm}Y@{}}
@@ -202,309 +205,301 @@ WakeProof is designed as a cohesive personal system spanning a primary Android p
 \textbf{\sffamily Device Surface} & \textbf{\sffamily Primary Role} & \textbf{\sffamily Key Capabilities \& Behaviour} \\
 \midrule
 \textbf{Android Phone} \newline {\scriptsize (Android 14+, API 34+)} &
-Ringing primary, camera verifier \& daily launcher &
-Rings scheduled and locked morning alarms; runs CameraX push-up counting and the day-plan photo; hosts the minimalist home screen, Nuclear Focus timer, flashcards, distraction walls, and Wearable Data Layer bridge. \\
+Ringing device, camera verifier \& launcher &
+Rings the locked and ordinary alarms; counts push-ups with CameraX; owes the session-summary photo; hosts the minimal home screen, focus timer, flashcards, distraction walls, and the Wearable Data Layer bridge. \\
 \addlinespace[4pt]
 \textbf{Android Tablet} \newline {\scriptsize (Adaptive two-pane UI)} &
-Silent-alarm study desk \& review surface &
-Automatically defaults \emph{Ringing Role} to \textbf{OFF} so two devices never blare across the room for one set of push-ups, while mirroring the full schedule, flashcards, exams, focus streak, and active focus walls. At $\ge 600\,\text{dp}$ window width, \texttt{AdaptiveShell} renders a permanent text navigation column beside a $720\,\text{dp}$ readable content pane. \\
+Silent study desk \& review surface &
+Ringing is \textbf{off} by default, while the schedule, flashcards, exams, streak and live focus walls all mirror. At $\ge 600\,\text{dp}$ wide, \texttt{AdaptiveShell} shows a permanent navigation column beside a $720\,\text{dp}$ readable pane. \\
 \addlinespace[4pt]
 \textbf{Wear OS Watch} \newline {\scriptsize (Wear OS 3+, API 30+)} &
-Standalone wrist timer, tiles \& backup alarm &
-Runs its own autonomous Nuclear Focus timer out of Bluetooth range; syncs completed blocks via Data Layer \emph{and} direct Wi-Fi/LTE Firestore upload; provides \emph{Stats} and \emph{WakeProof Today} tiles plus a watch-face complication; mirrors phone alarms (without wrist dismiss) and fires a $+2\,\text{min}$ backup alarm if the phone fails to ring. \\
+Wrist timer, walls \& backup alarm &
+Runs its own Nuclear Focus timer away from the phone; a Compose for Wear pager (focus ring, today, progress); tiles and a complication; mirrors phone alarms and rings a $+2\,\text{min}$ backup if the phone missed the locked one; walls gated apps on the watch itself. \\
 \addlinespace[4pt]
-\textbf{Ubuntu Desktop} \newline {\scriptsize (GNOME Wayland)} &
+\textbf{Ubuntu Laptop} \newline {\scriptsize (GNOME Wayland)} &
 End-to-end encrypted clipboard peer &
-Shares copied text and screenshots instantly with the phone and tablet over local Wi-Fi (\texttt{mDNS}/HTTP) or chunked AES-256-GCM cloud envelopes via \textbf{WakeProof Clip}. \\
+Shares copied text and screenshots with phone and tablet over local Wi-Fi or chunked AES-256-GCM cloud envelopes (\textbf{Euler's Lab Clip}). \\
 \bottomrule
 \end{tabularx}
-\caption{Hardware roles across the WakeProof ecosystem.}
+\caption{Hardware roles across Euler's Lab.}
 \end{table}
 
-\subsection{Single-Device Alarm Ringing Role}
-When Cloud Sync links a phone and a tablet, alarm rows synchronize so both screens show accurate schedules and daily goals. However, \textbf{ringing} is governed locally in device-protected storage (\texttt{AlarmDevicePolicy}):
+\subsection{One Ringing Device, One Shared Session}
 \begin{itemize}
-  \item Devices with telephony default to \textbf{Ringing ON}; Wi-Fi tablets default to \textbf{Ringing OFF} and display a clear companion banner on the Home dashboard.
-  \item Turning ringing off on a companion device actively cancels all local \texttt{AlarmManager} intents via \texttt{AlarmScheduler}, guaranteeing zero ghost rings even before first unlock after a reboot.
+  \item \textbf{Ringing role (\texttt{AlarmDevicePolicy}):} Alarm rows sync so every screen shows the same schedule, but \emph{ringing} is a local, device-protected setting: on by default on a telephony phone, off on a tablet (which then cancels every local \texttt{AlarmManager} intent and shows a companion banner).
+  \item \textbf{One session, every device (\texttt{SharedSession}):} A focus session started anywhere is published whole (phase, phase end, plan). Other devices offer \textbf{Continue here}, which runs the same countdown; a block finished on two devices is logged once. Every device posts a short heads-up when another device's session starts, changes phase or finishes.
 \end{itemize}
 
 % =============================================================================
-% SECTION 2: MORNING ALARMS & VERIFICATION
+% SECTION 2: ALARMS & VERIFICATION
 % =============================================================================
-\section{Camera- \& Mission-Verified Morning Alarms}
+\needspace{10\baselineskip}
+\section{Mission-Verified Alarms}
 
 \subsection{High-Reliability Alarm Engine}
-WakeProof schedules alarms with \texttt{AlarmManager.setAlarmClock()}, granting OS-level Doze immunity, status-bar alarm-clock visibility, and exact firing.
 \begin{itemize}
-  \item \textbf{Direct-Boot Mirror:} Every armed alarm's time and weekday bitmask (\texttt{hour:minute:mask}) are mirrored into Android \emph{Device-Protected Storage} (\texttt{DirectBootAlarmStore}). If the phone reboots overnight and sits at the PIN screen before first unlock, WakeProof still wakes the screen and rings on time.
-  \item \textbf{Weekly Repeat Bitmasks:} Each alarm carries a 7-bit mask (\texttt{Monday = bit 0 \dots Sunday = bit 6}). Empty masks are rejected in the UI and treated as every-day in the scheduler so an alarm can never silently disarm itself.
-  \item \textbf{Ghost-Alarm Immunity:} \texttt{AlarmInitializer} diffs Room rows (including deleted tombstones) against \texttt{DirectBootAlarmStore} IDs on every startup and sync pass, cancelling daily, snooze (\texttt{+20,000}), and test (\texttt{+10,000}) PendingIntents together.
-  \item \textbf{Clock-Format Respect:} All pickers and labels automatically honour the user's system 12-hour or 24-hour clock setting (\texttt{AlarmTimeFormat}) so AM/PM schedules are never mis-entered.
+  \item \textbf{Exact delivery:} \texttt{AlarmManager.setAlarmClock()} (Doze-immune, shown in the status bar), a full-screen lock-screen alarm, and a foreground ringing service.
+  \item \textbf{Direct-Boot mirror:} Every armed alarm is copied into device-protected storage (\texttt{DirectBoot\allowbreak AlarmStore}), so an alarm rings on time even when the phone rebooted overnight and was never unlocked.
+  \item \textbf{Weekly repeat masks:} A 7-bit mask (Monday = bit 0 \dots Sunday = bit 6); an empty mask means every day, so an alarm can never silently disarm itself.
+  \item \textbf{No ghost alarms:} \texttt{AlarmInitializer} diffs Room rows (tombstones included) against the Direct-Boot store at every start and sync, arming new alarms before cancelling orphans (daily, snooze and test intents together). At fire time the row is checked again; if the database cannot be read, the alarm rings anyway.
+  \item \textbf{Own alarm sound:} Every alarm plays a personal bundled sound when present and falls back to the system alarm otherwise. All times honour the device's 12/24-hour setting.
 \end{itemize}
 
-\subsection{Three Verification Missions}
+\subsection{Verification Missions}
 
-\subsubsection[1. Push-Up Verification (100\% On-Device ML Kit)]{1. Push-Up Verification \texorpdfstring{\pill{100\% On-Device ML Kit}}{(100\% On-Device ML Kit)}}
+\subsubsection[1. Push-Ups (100\% On-Device ML Kit)]{1. Push-Ups \texorpdfstring{\pill{100\% On-Device ML Kit}}{(100\% On-Device ML Kit)}}
 \begin{itemize}
-  \item \textbf{How it works:} CameraX streams frames (front or rear camera, flippable live) into Google ML~Kit Pose Detection on the device. A pure state machine (\texttt{PushupCounter}) tracks shoulder--elbow--wrist joint angles across down and up phases, displaying a live pose skeleton and rep counter.
-  \item \textbf{Target range:} Configurable from \textbf{5 to 10 push-ups} (\texttt{MAX\_PUSHUP\_TARGET = 10}), keeping mornings sharp and sustainable without joint strain.
-  \item \textbf{Progressive Ringtone Ducking:} Volume ramps in smoothly until rep~1 is registered, then steps down progressively from $60\%$ to $15\%$ with each completed rep (\texttt{pushupRingVolume}) so the alarm stops shouting while you are actively exercising --- snapping back to full volume if you stop.
-  \item \textbf{Zero retention:} Camera frames are analysed in memory and immediately discarded; no photo or video is ever saved to disk or sent over the network.
+  \item CameraX (front or rear, flippable live) feeds ML~Kit Pose Detection; a pure state machine (\texttt{PushupCounter}) follows the shoulder--elbow--wrist angle through each rep and shows a live skeleton and counter.
+  \item \textbf{5 to 10 reps} across the whole app. After rep~1 the ringtone steps down from $60\%$ to $15\%$, and comes back to full volume if you stop.
+  \item Frames are analysed in memory and discarded: no photo or video is ever saved or sent.
 \end{itemize}
 
-\subsubsection[2. Day-Plan Photo (Kept On The Device)]{2. Day-Plan Photo \texorpdfstring{\pill{Kept On The Device}}{(Kept On The Device)}}
+\subsubsection[2. Flashcard Review (SM-2, Camera-Free)]{2. Flashcard Review \texorpdfstring{\pill{SM-2, Camera-Free}}{(SM-2, Camera-Free)}}
 \begin{itemize}
-  \item \textbf{Write, then photograph:} The alarm asks you to write down everything the day holds and photograph the page. You look at the photo once (\emph{Keep this photo} or \emph{Retake}) and the ringing stops when it is kept.
-  \item \textbf{Nothing is judged:} WakeProof does not read or analyse the page. The photo is the whole proof.
-  \item \textbf{Day plans library:} Every photo is filed under its day in the app's private storage and shown in the \textbf{Day plans} screen, newest first, with pinch-to-zoom and delete. A plan can also be photographed there at any time. Photos stay on the device that took them: they are never uploaded or synced. The newest 90 days of plans are kept.
-  \item \textbf{Fixed 08:20 slot:} On the ringing device a day-plan alarm is pinned at 08:20 every day. Its row cannot be edited or deleted, but it rings like an ordinary alarm, with snooze and the emergency dismiss.
+  \item Up to 10 cards due today across every subject, graded \emph{Again / Hard / Good / Easy} exactly as on the Flashcards screen. The answer can be shown only after the question has stood for three seconds; a card graded \emph{Again} comes round again and does not count.
+  \item In the two weeks before an exam the alarm asks for 15 or 20 cards, the exam's subject first. With no card due it falls back to the sums.
 \end{itemize}
 
-\subsubsection[3. Flashcard Review (SM-2, Camera-Free)]{3. Flashcard Review \texorpdfstring{\pill{SM-2, Camera-Free}}{(SM-2, Camera-Free)}}
+\subsubsection[3. Mental Math \& Euler Dojo (Camera-Free)]{3. Mental Math \& Euler Dojo \texorpdfstring{\pill{Camera-Free}}{(Camera-Free)}}
 \begin{itemize}
-  \item \textbf{Due cards silence the alarm:} Up to 10 flashcards that are due today, across every subject, longest overdue first. Each is graded \emph{Again / Hard / Good / Easy} exactly as on the Flashcards screen, and the SM-2 schedule is updated.
-  \item \textbf{Recall first:} A card's answer can be shown only after its question has stood for three seconds. A card graded \emph{Again} comes round once more and does not count.
-  \item \textbf{Self-graded:} Nothing checks the answer; the alarm's job is to put the day's spaced repetition in front of you.
-  \item \textbf{No card due:} The alarm falls back to the mental-math run, logged as that day's review.
+  \item \textbf{1 to 10 problems in a row} (default 3), positive answers of at most four digits. One wrong answer resets the run to zero and draws a new problem, so guessing digit by digit gets nowhere.
+  \item \textbf{Euler mental-calculation mode} (on by default) widens the problems to 11 families: mental squares ($a^2 + c$), $2\times2$ determinants ($ab - cd$), cubes ($a^3 \pm b$), powers of two (up to $2^{13}$), modular products, Euler's totient $\varphi(n)$ for $n \le 100$, and the series $\sum k$ and $\sum k^2$.
 \end{itemize}
 
-\subsubsection[4. Evening Review (19:30, Kept On The Device)]{4. Evening Review \texorpdfstring{\pill{19:30, Kept On The Device}}{(19:30, Kept On The Device)}}
+\subsubsection[4. Tomorrow's Top Three (19:40)]{4. Tomorrow's Top Three \texorpdfstring{\pill{19:40, Fixed}}{(19:40, Fixed)}}
 \begin{itemize}
-  \item \textbf{The plan, checked:} Half an hour before the night wall a fixed alarm shows the morning's plan photo and asks how much of it got done (\emph{All of it / Most / Some / None}).
-  \item \textbf{Tomorrow's top three:} Up to three lines for tomorrow; one is enough to close the day. Home shows them the next day, and the morning plan alarm repeats them.
-  \item \textbf{Study targets that follow the exams:} In the two weeks before an exam on the Exams list the daily focus goal rises by itself (a quarter more, then half more, then double in the last three days) and review alarms ask for 15 or 20 cards, the exam's subject first.
-  \item \textbf{Recall, balance and sleep:} Every finished focus block asks for two lines of recall, which wait on the Flashcards screen to become cards. The weekly report weighs each subject's hours against the credits set in Settings, and scores on how many nights the phone was down by 20:00.
+  \item A fixed alarm twenty minutes before bed that stops when you write up to three things that matter most tomorrow (one line is enough). Nothing judges the day.
+  \item The lines show on Home and on the launcher the next day, and the newest evening syncs to your other devices. The row cannot be edited, but snooze and the emergency dismiss work as on an ordinary alarm.
 \end{itemize}
 
-\subsubsection[5. Mental Math Verification (Camera-Free / Dark-Room Ready)]{5. Mental Math Verification \texorpdfstring{\pill{Camera-Free / Dark-Room Ready}}{(Camera-Free / Dark-Room Ready)}}
-\begin{itemize}
-  \item Designed for dark rooms, shared bedrooms, or mornings where camera missions are impractical.
-  \item Requires solving \textbf{1 to 10 consecutive arithmetic problems} (default 3) with positive $\le 4$-digit answers.
-  \item \textbf{Anti-guessing rule:} Entering a single wrong answer resets your current streak back to \texttt{0} \emph{and} generates a brand-new problem, making digit-by-digit brute forcing impossible. On tablets in landscape, the keypad splits into an ergonomic two-pane problem/keypad layout.
-\end{itemize}
+\subsection{Snooze, Emergency Escape \& the Locked 03:00 Alarm}
 
-\subsection{Snooze, Emergency Escape \& Locked Strict Alarms}
-
-\begin{table}[ht!]
+\begin{table}[H]
 \centering
 \small
-\begin{tabularx}{\textwidth}{@{}L{3.5cm}Y Y@{}}
+\begin{tabularx}{\textwidth}{@{}L{3.3cm}Y Y@{}}
 \toprule
-\textbf{\sffamily Behaviour} & \textbf{\sffamily Ordinary Scheduled Alarms} & \textbf{\sffamily Locked Strict Morning Alarms} \\
+\textbf{\sffamily Behaviour} & \textbf{\sffamily Ordinary Alarms} & \textbf{\sffamily Locked Push-Up Alarm} \\
 \midrule
-\textbf{Schedule \& Editing} & User-configurable time, label, mission type, and weekday mask; deletable in Settings. & Fixed on the ringing phone at \textbf{04:00} and \textbf{06:05} daily (\textbf{10 push-ups}); cannot be disabled, edited, or deleted. \\
+\textbf{Schedule \& Editing} & Your own time, mission and weekdays; editable and deletable. & One alarm at \textbf{03:00 every day}, \textbf{10 push-ups}, on the ringing phone; cannot be disabled, edited or deleted, and a cloud edit is overwritten. \\
 \addlinespace[3pt]
-\textbf{Snooze Allowance} & Up to \textbf{3 snoozes $\times$ 5 min} per alarm per day (shown only inside verification screens). & \textbf{None.} Snooze is completely disabled. \\
+\textbf{Snooze} & Up to \textbf{3 $\times$ 5 min} per alarm per day, offered only on the verification screens. & \textbf{None.} \\
 \addlinespace[3pt]
-\textbf{Emergency Dismiss} & \textbf{60-second continuous hold}, unlocked only after 3 failed verifications, 5 min / 10 math errors, or broken hardware (logged as \texttt{SKIPPED}). & \textbf{None.} If camera hardware fails to open, falls back to \textbf{10 consecutive math problems} --- never a free dismiss. \\
+\textbf{Emergency Dismiss} & A \textbf{60-second hold}, unlocked only after 3 failed verifications, 5 minutes (or 10 math mistakes), or an unusable camera; logged as \texttt{SKIPPED}. & \textbf{None.} If the camera cannot be used (failed start, no frames for 15\,s, or nobody seen for 10 min), \textbf{10 sums in a row} instead --- never a free exit. A revoked camera permission is warned about hourly. \\
 \addlinespace[3pt]
-\textbf{Audio \& Reboot Survival} & Volume ramps $30\% \rightarrow 100\%$ over $60\,\text{s}$. & Alarm volume pinned at $\ge 70\%$ of max ($20\,\text{s}$ ramp); unverified rings persist in device-protected storage and \textbf{auto-resume across reboots} within $20\,\text{h}$. \\
+\textbf{Volume \& Restarts} & Normal alarm ramp. & Alarm volume held at $\ge 70\%$ of maximum; an unfinished ring survives reboots and process kills for up to 20\,h. \\
 \addlinespace[3pt]
-\textbf{Smartwatch Backup} & Mirrors live ringing to paired watch (vibration + alarm audio, no wrist dismiss). & Mirrors ringing \emph{plus} arms a standalone watch \texttt{setAlarmClock} at \textbf{slot + 2 min} that rings on the wrist if the phone missed the slot. \\
+\textbf{Watch} & Buzzes and rings with the phone (no wrist dismiss). & Also arms a watch alarm at \textbf{03:02} that rings on the wrist if the phone did not. \\
 \bottomrule
 \end{tabularx}
-\caption{Comparison between ordinary alarms and WakeProof's Locked Strict Morning Alarms.}
+\caption{Ordinary alarms compared with the locked 03:00 push-up alarm.}
 \end{table}
 
 % =============================================================================
-% SECTION 3: NUCLEAR FOCUS, AUDIO & FOREST
+% SECTION 3: NUCLEAR FOCUS
 % =============================================================================
-\section{Nuclear Focus, Soundscapes \& Focus Forest}
+\needspace{10\baselineskip}
+\section{Nuclear Focus, Session Summaries \& Sound}
 
-\subsection{Unstoppable Pomodoro Sessions (\texttt{PomodoroTimerService})}
-Standard timers fail because quitting takes a single tap the moment boredom hits. WakeProof implements \textbf{Nuclear Focus}:
+\subsection{Unstoppable Sessions (\texttt{PomodoroTimerService})}
 \begin{itemize}
-  \item \textbf{Fixed Commitments Only:} Open-ended ``free-run'' timers are intentionally absent because an unstoppable session must have a guaranteed end time. Choose from \textbf{1\,h}, \textbf{1\,h\,30}, \textbf{2\,h}, or the fixed \textbf{3\,h recipe} ($6 \times 25\,\text{min}$ focus blocks, $5\,\text{min}$ short breaks, and a $15\,\text{min}$ long break after the third block $= 3\,\text{h}\,05\,\text{m}$), or launch an \textbf{exact-duration session from a calendar event}.
-  \item \textbf{Zero Pause, Reset, or Stop:} Once started, pause and stop controls disappear from the app UI, notification shade, floating overlay bubble, and watch remote. Monotonic timing (\texttt{SystemClock.elapsedRealtime()}) prevents tick drift.
-  \item \textbf{Whole-Session Cross-Device Focus Wall:} From the first second until the final block ends --- \textbf{including breaks}, so a 5-minute break never turns into an hour of scrolling --- every app outside your pre-approved \emph{Study Apps} list is walled across your phone, your tablet (\texttt{LiveFocusSession}), and your watch (\texttt{WatchSessionBeacon}).
-  \item \textbf{Mid-Session Tamper Locks:} During an active session, Android \texttt{Settings} is walled (\texttt{FOCUS\_WALLED\_ESSENTIALS}), study apps can be \emph{removed} from the focus list but never \emph{added}, and Priority Do Not Disturb (\texttt{SessionDnd}) engages automatically across every walled device.
-  \item \textbf{Reboot \& Force-Stop Persistence (\texttt{SessionRecovery}):} Session state commits to disk on every phase transition. Rebooting or killing the process resumes the session, marks any interrupted focus block as \emph{Withered}, and logs overdue blocks as \texttt{SKIPPED}.
+  \item \textbf{Fixed commitments only:} \textbf{1\,h}, \textbf{1\,h\,30}, \textbf{2\,h}, or \textbf{3\,h} ($6 \times 25$ min focus, 5 min breaks, a 15 min long break after the third block $= 3$\,h\,05), or an \textbf{exact session for a calendar event} (25/5, last block trimmed to end on the event's minute). The event's title is kept beside the course in the history, synced and exported.
+  \item \textbf{No pause, reset or stop} anywhere: app, notification, floating bubble or watch. Time is counted on \texttt{SystemClock.elapsedRealtime()}, so it never drifts.
+  \item \textbf{Whole-session wall, breaks included:} every app outside your study list is walled on phone, tablet and watch, Android Settings too; study apps can be removed mid-session but never added; Priority Do Not Disturb turns on everywhere and is restored afterwards.
+  \item \textbf{Survives reboots and force-stops} (\texttt{SessionRecovery}): an interrupted block resumes as \emph{withered}, an overdue one is logged \texttt{SKIPPED}.
+  \item \textbf{Bed hours take no work:} no session starts (or would run) between 20:00 and 03:00 on any device.
+  \item \textbf{Immersive timer:} during focus the screen shows only the ring, ``Break at HH:MM'', an optional Euler quote, and \textbf{Park a thought}; when a break ends the timer comes back to the front by itself.
 \end{itemize}
 
-\subsection{Full-Screen Immersive Mode, Floating Bubble \& Thought Parking}
+\subsection{The Session Summary (Euler Derivation Protocol)}
+When a session's last focus block ends, the ringing phone asks for \textbf{at least ten minutes} writing on paper everything studied --- (1) definitions and theorems, (2) the crux derivation or a counterexample, (3) the next open question --- and then a photo of the page.
 \begin{itemize}
-  \item \textbf{Full-Screen Immersive Timer:} During focus phases, WakeProof hides navigation drawers, chat panels, sound pickers, and subject chips, leaving only the progress ring, wall-clock break time (\emph{``Break at 14:35''}), and \textbf{Park a thought}.
-  \item \textbf{Thought Parking:} Capture intrusive reminders or to-dos in two seconds mid-block without opening a browser or messaging app; parked thoughts sync across devices for review after the session.
-  \item \textbf{Floating Bubble \& Keep-Screen-On:} When switching into an approved study app (such as Samsung Notes), a non-focusable overlay bubble keeps the countdown visible on top and optionally holds \texttt{FLAG\_KEEP\_SCREEN\_ON} across the entire session.
+  \item Until the photo is kept (30 minutes at most), apps outside the study list stay walled and no new session can start on any device. The ten minutes are counted on time since boot, so moving the clock forward opens nothing.
+  \item Photos stay on the phone (newest 90 days), are filed by course, can be retaken for ten minutes, and are counted per course per week on Home and in the weekly report. They are never uploaded.
 \end{itemize}
 
-\subsection{Circular Stereo Soundscapes \& Spotify Control}
+\subsection{Forest, Streak, Recall \& the Adversaria}
 \begin{itemize}
-  \item \textbf{7 Synthesized Circular Stereo Loops:} Rain, Fireplace, Ocean Waves, Forest Creek, Warm Ambient Pad, Soft Pink Static, and Wind in the Pines --- encoded as $44.1\,\text{kHz}$ stereo OGG Vorbis loops (\texttt{tools/sounds/}). Every loop is constructed circularly in the frequency domain (zero crossfade dip) and levelled to equal K-weighted loudness, with configurable \textbf{0--60\,s squared-curve fade-in and pre-rolled fade-out}.
-  \item \textbf{SDK-Free Spotify Integration (\texttt{SpotifyController}):} Save any playlist URI in Settings, launch it directly, and control play/pause/next/previous via Android media key dispatch --- requiring zero Spotify account login or SDK telemetry. Selecting Spotify as your focus sound automatically whitelists Spotify on the focus wall for that session.
+  \item \textbf{Focus Forest:} each verified block grows a tree; with Deep Focus on, 10\,s in a non-study app withers it (screen off never counts).
+  \item \textbf{Focus streak:} a day counts when verified focus minutes reach the daily goal (up to 12\,h, synced). In the two weeks before an exam the goal rises by itself: $+25\%$, then $+50\%$, then double in the last three days.
+  \item \textbf{Recall notes:} after each block, two lines of recall wait on the Flashcards screen to become cards.
+  \item \textbf{Adversaria:} parked thoughts marked as questions form a ledger of open problems and conjectures; one can be pinned to the timer and focus screen.
 \end{itemize}
 
-\subsection{Focus Forest \& Focus-First Streaks}
+\subsection{Study Sounds}
 \begin{itemize}
-  \item \textbf{Focus Forest (\texttt{FocusTree}):} Every verified focus block plants a tree in your visual forest (derived directly from \texttt{completion\_logs}, so your forest syncs and backs up automatically). With \emph{Deep Focus} active, spending more than $10\,\text{s}$ in any non-study, non-essential app withers the current block's tree (\texttt{SKIPPED}). Turning the screen off never penalizes you.
-  \item \textbf{Focus-First Daily Streak (\texttt{DailyGoals}):} Your headline daily streak increments whenever verified focus minutes reach your \textbf{Daily Focus Goal} (configurable up to \textbf{12 hours} in 15-minute steps and synced across devices so phone and tablet always report the exact same streak).
-\end{itemize}
-
-% =============================================================================
-% SECTION 4: STUDY SUITE & ANALYTICS
-% =============================================================================
-\section{Study Suite: SM-2 Flashcards, Exams, Analytics \& Coach}
-
-\subsection{SM-2 Spaced-Repetition Flashcards \& Gemini Drafting}
-\begin{itemize}
-  \item \textbf{Classic SM-2 Algorithm (\texttt{Sm2Scheduler}):} Cards track ease factor, repetition count, and next-review epoch day across \emph{Again}, \emph{Hard}, \emph{Good}, and \emph{Easy} ratings, organized by subject tag.
-  \item \textbf{AI Flashcard Drafting (Optional):} Paste lecture notes or snap/pick a photo of handwritten or printed pages to draft review-ready Q\&A cards via Google's \texttt{gemini-3.8-flash} model using strict JSON schema enforcement (\texttt{FlashcardEnvelope}).
-  \item \textbf{In-Timer Study Coach Chat (Optional):} Ask conceptual questions during study breaks using your own Gemini API key (\texttt{reasoning\_effort = "low"} keeps latency crisp).
-\end{itemize}
-
-\subsection{Exams, Cross-Device Study Time \& On-Device Weekly Coach}
-\begin{itemize}
-  \item \textbf{Exam Countdowns:} Track upcoming exams with subject tags and days-remaining badges directly on the Home dashboard.
-  \item \textbf{Cross-Device Study-Time Reconciliation (\texttt{StudyTime}):} Studying on a tablet, on paper, or with the watch timer leaves zero foreground events on your phone. WakeProof publishes each device's daily study-app usage (\texttt{studyUsage/\{installId\}}) and credits any unmeasured timer shortfall ($\max(\text{measured}, \text{focus})$) to your primary study app (default: Samsung Notes) --- capturing paper and wrist sessions without ever double-counting screen study.
-  \item \textbf{Raw Event-Folded Screen Time (\texttt{UsageStats\allowbreak Repository}):} Android's built-in \texttt{queryAnd\allowbreak Aggregate\allowbreak UsageStats} leaks pre-midnight hours into ``today'' and misses active foreground sessions. WakeProof instead folds raw \texttt{UsageEvents} per activity class (\texttt{foldForeground\allowbreak Millis}, \texttt{foregroundMillis\allowbreak PerSpan}), splitting cross-midnight sessions cleanly at \texttt{00:00} and accurately tracking multi-activity trampolining apps.
-  \item \textbf{100\% On-Device Weekly Report (\texttt{WeeklyReportGenerator}):} Synthesizes your past 7 days of focus minutes, alarm completions, distraction minutes, and wall stats into \emph{Wins}, up to three severity-ranked \emph{Watch-outs}, and \emph{one concrete suggestion for next week} --- completely offline, with zero data sent to any AI provider.
+  \item \textbf{Seven seamless loops} (rain, fireplace, waves, creek, warm pad, soft static, wind in the pines): 44.1\,kHz stereo OGG Vorbis, built circularly so there is no seam, levelled to equal loudness, with 0--60\,s fades.
+  \item \textbf{Your own music}, played inside the app from a folder you pick or from your library (album or artist), shuffled. Calls and navigation pause it; anything unreadable falls back to a loop, never silence. No Spotify or other music app is opened or exempted from the walls.
 \end{itemize}
 
 % =============================================================================
-% SECTION 5: DISTRACTION WALLS & SCHEDULE ENFORCEMENT
+% SECTION 4: STUDY SUITE
 % =============================================================================
-\section{Distraction Walls, Schedule Rules \& Device Hardening}
+\needspace{10\baselineskip}
+\section{Study Suite: Flashcards, AI Help, Exams \& Reports}
+\begin{itemize}
+  \item \textbf{SM-2 flashcards} (\texttt{Sm2Scheduler}) by subject, with \emph{Again / Hard / Good / Easy}.
+  \item \textbf{AI card drafting (optional, your own Gemini key):} from typed notes or a photo of a page, \texttt{gemini-3.8-flash} drafts four kinds of research card: proof skeleton and crux step, hypothesis \& counterexample audit, method trigger, and definition or formula.
+  \item \textbf{Study chat (optional):} \emph{Explain / Quiz}, or \emph{Euler Referee (Socratic)}, which asks for definitions and hypotheses first, probes boundary cases and offers counterexamples to loose claims.
+  \item \textbf{Exams:} countdowns on Home; for the seven days up to an exam every gated app is shut (an exam week, once held, cannot be shortened by deleting or moving the exam).
+  \item \textbf{Honest screen time:} usage is folded from raw \texttt{UsageEvents} per activity, split cleanly at midnight; study apps and Euler's Lab itself are not counted as screen time. Study time from the tablet, paper or the watch is credited without double counting.
+  \item \textbf{Course credits \& sleep score:} the weekly report weighs each course's hours against its credits and scores how many nights the screen stayed off between 20:00 and 03:00.
+  \item \textbf{On-device weekly report:} wins, watch-outs, one suggestion for next week, time by course and by calendar event, and summary pages per course --- written on the device with nothing sent to any AI.
+\end{itemize}
+
+% =============================================================================
+% SECTION 5: DISTRACTION WALLS
+% =============================================================================
+\needspace{10\baselineskip}
+\section{Distraction Walls \& Schedule Rules}
 
 \subsection{Always-On Gatekeeper \& Verdict Priority}
-\texttt{AppBlockService} runs as a lightweight \texttt{specialUse} foreground service (never abusing Android's \texttt{AccessibilityService}), evaluating the live foreground activity set every \textbf{500\,ms} while the screen is interactive and waking immediately on unlock (\texttt{ACTION\_USER\_PRESENT}). Every tick evaluates a single pure function (\texttt{gateVerdict}) in strict priority order:
+\texttt{AppBlockService} is a \texttt{specialUse} foreground service (never an \texttt{AccessibilityService}) that checks the apps on screen every \textbf{500\,ms} while the screen is on. One pure function, \texttt{gateVerdict}, decides every wall in this order:
 
-\begin{table}[ht!]
+\begin{table}[H]
 \centering
 \small
-\begin{tabularx}{\textwidth}{@{}c L{3.4cm} Y@{}}
+\begin{tabularx}{\textwidth}{@{}c L{3.6cm} Y@{}}
 \toprule
-\textbf{\sffamily Priority} & \textbf{\sffamily Verdict} & \textbf{\sffamily Rule \& Condition} \\
+\textbf{\sffamily \#} & \textbf{\sffamily Verdict} & \textbf{\sffamily Rule \& Condition} \\
 \midrule
-\textbf{1} & \texttt{ALLOW} & \textbf{Essential packages:} Phone dialer, in-call UI, system permission controller, home screen, and WakeProof itself (\texttt{Settings} is excluded during active focus sessions). \\
-\textbf{2} & \texttt{CLOCK\_WALL} & \textbf{Untrusted Clock:} Outside a focus session, every app but Clock, Calendar and the default SMS app (gated and capped apps only on the Play build) is shut while automatic date, time or time zone is off, or while the clock sits more than 5 minutes from network time. Every wall below reads that clock. \\
-\textbf{3} & \texttt{SLEEP\_WALL} & \textbf{Night Sleep Wall (21:00--04:00):} Every non-essential app (except Clock, Calendar, and active focus-list study apps) is shut to protect 7 hours of sleep before the 04:00 alarm. \\
-\textbf{4} & \texttt{FOCUS\_WALL} & \textbf{Active Focus Session:} Any app not on your \emph{Study Apps} focus list is walled across phone and tablet for the entire session, breaks included. \\
-\textbf{5} & \texttt{QUARANTINE\_WALL} & \textbf{New App (Sideloaded Build):} An app in its first 7 days on the device. \\
-\textbf{6} & \texttt{HISTORY\_WALL} & \textbf{Notification History On:} Outside a focus session, gated and capped apps stay shut, because Android would keep the text of the notifications the walls strip. \\
-\textbf{7} & \texttt{CAP\_WALL} & \textbf{Per-App Daily Cap (\texttt{BLOCK} mode):} Installed app has exhausted its configured daily minute allowance. \\
-\textbf{8} & \texttt{WINDOW\_WALL} & \textbf{Schedule Wall (Gated Apps):} Shut \textbf{all day Friday--Sunday} (\texttt{00:00} Fri to \texttt{24:00} Sun) and outside \textbf{08:10--08:50 Monday--Thursday}. \\
-\textbf{9} & \texttt{BEDTIME\_WALL} & \textbf{Evening Backstop:} Gated apps shut from configured bedtime (default \texttt{16:00}) until \texttt{08:40} the next morning. \\
-\textbf{10} & \texttt{EARN\_WALL} & \textbf{Earn-the-Feed:} When no morning window is set, gated apps stay shut until today's first verified focus block completes. \\
-\textbf{11} & \texttt{ALLOW} & \textbf{Open Access:} Non-gated apps, or gated apps inside the Monday--Thursday \textbf{08:10--08:50} window, direct launch with zero artificial countdown wait; the bedtime wall holds until \texttt{08:40}, so by default that is 08:40--08:50. \\
+\textbf{1} & \texttt{ADMIN\_LOCK\_WALL} & The device-admin off switch in Settings, while the optional uninstall lock is on. \\
+\textbf{2} & \texttt{ALLOW} & \textbf{Essentials:} phone and in-call screen, home screen, Euler's Lab, permission controller, Samsung screen capture (Settings is walled during a session). A home or SMS app newly made the default is quarantined first. \\
+\textbf{3} & \texttt{CLOCK\_WALL} & Outside a session, automatic time or zone off, or the clock more than 5 min from network time: everything but Clock, Calendar, the SMS app and the Wi-Fi sign-in page. \\
+\textbf{4} & \texttt{SLEEP\_WALL} & \textbf{Night wall:} \textbf{18:00--08:00} on the phone, \textbf{20:00--03:00} on the tablet. Clock, Calendar and (on the phone) the cameras stay open. \\
+\textbf{5} & \texttt{FOCUS\_WALL} & A session is running on any device and the app is not on the study list. \\
+\textbf{6} & \texttt{SUMMARY\_WALL} & A session summary is owed (up to 30 min after the session). \\
+\textbf{7} & \texttt{QUARANTINE\_WALL} / \texttt{HISTORY\_WALL} & A new app in its first 7 days (sideloaded build); or Notification History is on (it would keep the text the walls remove). \\
+\textbf{8} & \texttt{CAP\_WALL} & A per-app daily limit is spent. \\
+\textbf{9} & \texttt{EXAM\_WALL} & Gated apps during the 7 days up to an exam. \\
+\textbf{10} & \texttt{WINDOW\_WALL} & Gated apps outside \textbf{12:25--12:50}, every day. \\
+\textbf{11} & \texttt{BEDTIME\_WALL} & Gated apps from 16:00 to 08:20 (the daily window lies wholly outside it). \\
+\textbf{12} & \texttt{ALLOW} & Everything else, and gated apps inside the window, with no countdown or budget. \\
 \bottomrule
 \end{tabularx}
 \caption{Priority order of \texttt{gateVerdict} in \texttt{AppGate.kt}.}
 \end{table}
 
-\subsection{Comprehensive Gated App Coverage \& Gemini Preservation}
+\subsection{What Counts as Gated}
 \begin{itemize}
-  \item \textbf{Social, Video, Feeds \& Portals:} Instagram, Threads, Facebook, X/Twitter, TikTok, Snapchat, Reddit, LinkedIn, Pinterest, YouTube, YouTube Music/Kids, NewPipe, ReVanced, Netflix, Twitch, Bluesky, Mastodon, Samsung Free/TV Plus, Naver, Daum, and Google Play Store.
-  \item \textbf{All Messengers Included (Default SMS Exempt):} WhatsApp, WhatsApp Business, Telegram, KakaoTalk, Messenger, Signal, Discord, LINE, WeChat, and Viber follow the exact same Monday--Thursday \texttt{08:10--08:50} schedule and Friday--Sunday shutdown. The system default SMS app remains exempt outside focus sessions so banking and 2FA OTP codes are never delayed.
-  \item \textbf{Installed Web Browsers (\texttt{GATE\_BROWSERS}):} Chrome, Samsung Internet, Firefox, Brave, Edge, Opera, DuckDuckGo, Whale, and any app resolving \texttt{https://example.com} are gated identically so \texttt{youtube.com} or \texttt{x.com} in a browser tab cannot bypass app walls.
-  \item \textbf{Smart Google App vs.\ Gemini Separation:} The Google app (\texttt{googlequicksearchbox}) embeds the Discover feed and an internal browser (\texttt{SilkPaneActivity}) that could otherwise tunnel into social feeds, yet on Android~16 standalone Google Gemini (\texttt{BardShell}) launches \texttt{.voice.robin.*} activities hosted inside that same package. WakeProof resolves this cleanly at the activity class level (\texttt{AppGate.effectivePackage}): Gemini works 24/7 from the home screen, while Google Discover, Search, and \texttt{SilkPaneActivity} stay strictly behind the schedule wall.
+  \item \textbf{Social, video and portals:} Instagram, Threads, Facebook, X, TikTok, Snapchat, Reddit, LinkedIn, Pinterest, Tumblr, BeReal, Bluesky, Mastodon, YouTube (and Music, Kids, NewPipe, ReVanced), Netflix, Twitch, Samsung Free/TV Plus, Naver, Daum, the Google app's Discover and Search, and the Play Store --- plus every app in Android's social and video categories.
+  \item \textbf{Every messenger:} WhatsApp (and Business), Telegram, KakaoTalk, Messenger, Signal, Discord, LINE, WeChat, Viber. The default SMS app is never gated outside a session, so bank codes always arrive.
+  \item \textbf{Every browser, Chrome included}, and web-app shells. Coursework goes through the built-in Blackboard browser, locked to the university's and Blackboard's hosts.
+  \item \textbf{Gemini stays open:} standalone Gemini runs inside the Google app on Android~16; \texttt{AppGate.effectivePackage} tells its activities apart from Discover and Search, so Gemini works while the feed stays walled.
 \end{itemize}
 
-\subsection{Fixed Walls, Notification/Media Guards \& New-App Quarantine}
+\subsection{Fixed Walls \& Guards}
 \begin{itemize}
-  \item \textbf{Fixed Walls \& Tighten-Only Caps:} The bedtime wall (16:00--08:40), the open window (08:10--08:50), the Friday--Sunday shutdown, browser gating, earn-the-feed and session Do Not Disturb are fixed in code, like the 21:00--04:00 night wall: the Usage screen shows them locked, and only a new build can change them. A daily app limit takes effect at once and can then only be tightened; raising, softening or removing one is refused.
-  \item \textbf{Shade \& Media Silencing (\texttt{WindowNotificationGuard}):} Automatically cancels notifications posted by walled apps (inspecting only package names, never message text) and pauses active \texttt{MediaSession} playback (blocking Picture-in-Picture or background audio left running when a window closes).
-  \item \textbf{Evening Sleep Hygiene (\texttt{NightRules}):} Delivers a wind-down heads-up at \textbf{20:30}, raises the phone-wide sleep wall and posts a lights-out cue at \textbf{21:00}, and reminds you every $30\,\text{min}$ if battery is below $40\%$ and unplugged so a dead battery cannot defeat the 04:00 alarm.
-  \item \textbf{New-App Quarantine (\texttt{NewAppQuarantine}, Sideloaded Build Only):} A newly installed app stays walled for its first \textbf{7 days}, so an app the gated lists do not name yet cannot become a way around them. Play Store, the Google app, the keyboard, the dialer, and the named home-screen tools are exempt. A home or SMS app newly made the default keeps its week, and an uninstalled app that comes back starts a new one.
-  \item \textbf{Pop-Up and Split-Screen Cover:} A walled app left running in a pop-up window or split screen is walled again every time you leave its wall, until it is closed.
-  \item \textbf{Lost Permissions:} Revoking Usage Access or draw-over-apps takes every wall down. WakeProof cannot prevent this, so an alert keeps returning (every 15 minutes on the sideloaded build, daily on Play) until access is restored, and walls come back on their own. On a device with locked alarms, a revoked camera permission raises an hourly warning.
-\end{itemize}
-
-% =============================================================================
-% SECTION 6: MINIMALIST HOME SCREEN LAUNCHER
-% =============================================================================
-\section{Minimalist Home Screen Launcher \& Calendar Focus}
-
-Choosing WakeProof as your Android home app (\texttt{LauncherActivity}) replaces colorful notification badges and algorithmic app drawers with a quiet, high-contrast dark text interface built around intention:
-\begin{itemize}
-  \item \textbf{Unremovable Utility Pins (\texttt{HomeTools}):} Surfaces only genuine tools --- Phone, Camera, Expert RAW, Samsung Notes, Claude, Google Gemini, KakaoBank, UNIST Smart-Check, Clock, and Calendar (showing whichever subset is installed). Gated and capped apps can never be pinned.
-  \item \textbf{Today's Live Calendar Agenda:} Displays every scheduled event for today (with timezone-exact UTC handling for all-day events). Tick an item off directly on the home screen, receive an automatic \textbf{5-minute heads-up reminder} before timed events, or tap an event title to start a \textbf{Nuclear Focus session timed to end on the event's exact finishing minute} (\texttt{EventFocus}).
-  \item \textbf{Anti-Muscle-Memory ``Other Apps'' List:} No search bar and no alphabetical scrollbar --- the grey text list reshuffles every \textbf{4 seconds} so habitual thumb-tapping breaks down. Non-gated capped apps trigger a \textbf{45-second mindful pause} (cancelled if you leave the screen), while walled apps open WakeProof's clear status screen stating exactly when they next unlock (\emph{e.g., ``Monday between 08:10 and 08:50''}).
+  \item \textbf{Fixed in code:} no setting can move or loosen a wall; a daily app limit can only be tightened.
+  \item \textbf{Notifications and media:} notifications from walled apps are removed (by package, never by content) and their media sessions paused, so picture-in-picture or background audio cannot leak through.
+  \item \textbf{Pop-ups, split screen and pinning} are covered; a walled app's background process is ended once it leaves the screen.
+  \item \textbf{Night:} a lights-out notice at 20:00, and from 20:30 a reminder every 30 min if the phone is below $40\%$ and unplugged, so a flat battery cannot beat the 03:00 alarm.
+  \item \textbf{Lost grants:} revoking Usage access or draw-over-apps drops every wall; an alert returns every 15 minutes until it is granted again.
+  \item \textbf{Uninstall lock (optional):} a plain device admin with no policies, so the app cannot be uninstalled casually; there is no off button in the app. Euler's Lab is never a device owner.
 \end{itemize}
 
 % =============================================================================
-% SECTION 7: WEAR OS, CLOUD SYNC & WAKEPROOF CLIP
+% SECTION 6: LAUNCHER
 % =============================================================================
-\section{Wear OS Companion, Cloud Sync \& WakeProof Clip}
-
-\subsection{Wear OS Smartwatch App (\texttt{:wear})}
+\needspace{10\baselineskip}
+\section{Minimal Home Screen \& Calendar Focus}
+Making Euler's Lab the home app (\texttt{LauncherActivity}) replaces badges and app grids with a quiet dark text screen:
 \begin{itemize}
-  \item \textbf{Standalone Nuclear Wrist Timer (\texttt{WatchTimerEngine}):} Start \textbf{1\,h}, \textbf{1\,h\,30}, \textbf{2\,h}, or \textbf{3\,h} sessions directly on your watch with no phone nearby. Phase transitions fire exact alarms with unmistakable alarm-strength wrist vibration patterns ($\sim 30\,\text{s}$ back-to-focus, $\sim 10\,\text{s}$ into break/complete, stoppable on tap) and keep a low-power dimmed ambient countdown on screen when your wrist drops.
-  \item \textbf{Tiles, Complication \& Now Bar:} Includes the \textbf{WakeProof Stats Tile} (streak, focus vs.\ goal, day plan), the \textbf{WakeProof Today Agenda Tile} (tap any upcoming calendar event on your wrist to launch a timed focus session for it), a \textbf{Watch-Face Complication} (\texttt{SHORT\_TEXT} / \texttt{LONG\_TEXT}), and a Wear~OS \textbf{Ongoing Activity} Now Bar indicator.
-  \item \textbf{Offline-Resilient Dual Sync:} Finished watch focus blocks queue in \texttt{FocusSessionOutbox} for Bluetooth Data Layer import (acknowledged via a 14-day ID window so zero blocks double-count or get stranded) \emph{and}, when signed in, upload directly over watch Wi-Fi/LTE to Firestore (\texttt{WatchCloud}) while broadcasting the live wrist timer to your tablet and phone.
-\end{itemize}
-
-\subsection{Dual-Clock Tombstone Cloud Sync \& Local Backups}
-\begin{itemize}
-  \item \textbf{Firestore Mirror (\texttt{SyncEngine}):} Opt-in via Google Credential Manager sign-in (or one-tap phone-to-watch token handoff). Every Room v5 row carries \texttt{syncId}, \texttt{updatedAt}, \texttt{deleted} (tombstone), and \texttt{pending}. Device timestamps arbitrate per-row last-write-wins merges (\texttt{MergeDecision}), while Firestore \texttt{serverTimestamp} drives incremental pull cursors so a skewed device clock can never skip records.
-  \item \textbf{Portable Backups:} Export completion history to \textbf{CSV} for spreadsheets, or write/restore a full \textbf{JSON backup} (\texttt{data/backup/}) that merges entities non-destructively (preserving tombstones) and immediately reconciles \texttt{AlarmManager}. The JSON backup also carries the evening reviews and focus-block recall notes; day-plan photos stay on the device.
-\end{itemize}
-
-\subsection{WakeProof Clip --- End-to-End Encrypted Cross-Device Clipboard}
-\textbf{WakeProof Clip} unifies the clipboard across your Android phone, Android tablet, and Ubuntu GNOME Wayland laptop for plain text ($\le 256\,\text{KiB}$) and images/screenshots ($\le 20\,\text{MiB}$ on LAN):
-\begin{itemize}
-  \item \textbf{Zero-Knowledge Cryptography:} Every payload is sealed with \textbf{AES-256-GCM} using a 32-byte shared key $K$ exchanged strictly over local QR + LAN pairing (TCP port \texttt{47322}, stored in Android \texttt{EncryptedSharedPreferences} and Linux \texttt{libsecret} / GNOME Keyring). Additional authenticated data (\texttt{wakeproof-clip-v1|<uuid>}) prevents replay or tampering.
-  \item \textbf{LAN-First, Cloud-Fallback Transport:} Tries direct parallel HTTP delivery over \texttt{\_wakeproofclip\allowbreak .\_tcp} (port \texttt{47321}, $1.5\,\text{s}$ timeout) first; if campus Wi-Fi isolates clients or a peer is remote, falls back to chunked encrypted Firestore documents (\texttt{users/\{uid\}/clips/}) with automatic 1-hour expiry housekeeping. Password-manager clips marked sensitive (\texttt{EXTRA\_IS\_\allowbreak SENSITIVE} / \texttt{x-kde-password\allowbreak ManagerHint}) are never transmitted.
+  \item \textbf{Fixed tool pins:} Phone, Camera, Expert RAW, Samsung Notes, Claude, Gemini, Outlook, KakaoBank, UNIST Smart-Check, Clock, Calendar, and the Blackboard browser. Gated apps can never be pinned.
+  \item \textbf{Today's agenda:} every event today; tick items off, get a 5-minute heads-up, or tap an event to start a session timed to end on its last minute. Tomorrow's top three shows here too.
+  \item \textbf{``Other apps'':} no search bar, no index; the grey list reshuffles every \textbf{4 seconds}. Capped apps get a \textbf{45-second pause}; walled apps open a screen saying when they next open (\emph{``today at 12:25''}). If the wall service is down, the launcher applies the same rules itself.
 \end{itemize}
 
 % =============================================================================
-% SECTION 8: PRIVACY, PERMISSIONS & ARCHITECTURE
+% SECTION 7: WEAR OS, SYNC & CLIP
 % =============================================================================
-\section{Privacy, Permissions \& Technical Architecture}
+\needspace{10\baselineskip}
+\section{Wear OS, Cloud Sync \& Euler's Lab Clip}
 
-\begin{wpbox}[wpteal]{Zero Ads $\cdot$ Zero Analytics $\cdot$ Offline by Default}
-WakeProof contains \textbf{no advertising SDKs, no crash/behavioural telemetry, and no developer-operated backend}. Without signing into Cloud Sync or pasting your own Gemini API key, WakeProof makes \textbf{zero internet requests} --- and push-up alarms, day-plan and flashcard-review alarms, math alarms, Nuclear Focus, flashcards, distraction walls, and weekly reports all work 100\% offline.
+\subsection{Wear OS Companion (\texttt{:wear})}
+\begin{itemize}
+  \item \textbf{Own Nuclear timer:} 1\,h to 3\,h sessions on the wrist with no phone nearby, the same no-pause rule, strong phase-change buzzes and a dim ambient countdown. It can follow a phone session (\emph{Continue here}) and refuses starts during bed hours or while a summary is owed.
+  \item \textbf{Face, tiles and complication:} a Compose pager (focus ring with the event title, today, progress), the \emph{Euler's Lab progress} tile, the \emph{Euler's Lab Today} agenda tile, a watch-face complication, and an ongoing-activity indicator.
+  \item \textbf{Watch walls:} gated apps on the watch open only 12:25--12:50 (tighten-only, following the phone's window), shut during sessions, summaries and exam weeks; their notifications are removed. Apps are never disabled.
+  \item \textbf{Sync:} finished blocks go to the phone over the Data Layer (with a 14-day acknowledgement list) and, when signed in, straight to Firestore over Wi-Fi or LTE.
+\end{itemize}
+
+\subsection{Cloud Sync \& Backups}
+\begin{itemize}
+  \item \textbf{Opt-in Firestore mirror:} Google sign-in (Credential Manager). Every row carries \texttt{syncId}, \texttt{updatedAt}, \texttt{deleted} (tombstone) and \texttt{pending}; device time decides last-write-wins, server time drives the pull cursor. Access rules keep every record to its own account.
+  \item \textbf{Backups:} CSV export of the history (with course and event columns) and a full JSON backup that merges without destroying anything and re-arms alarms. Summary photos are never in the backup.
+\end{itemize}
+
+\subsection{Euler's Lab Clip --- Encrypted Clipboard}
+A shared clipboard for text and screenshots across phone, tablet and the Ubuntu laptop:
+\begin{itemize}
+  \item \textbf{AES-256-GCM} with a 32-byte key exchanged only by QR code over the local network, kept in Android's encrypted storage and the GNOME keyring.
+  \item \textbf{LAN first} (mDNS, port 47321); when the network isolates devices, \textbf{chunked encrypted Firestore documents} that expire after an hour, bounded in size by the security rules. Clips marked sensitive by a password manager are never sent.
+\end{itemize}
+
+% =============================================================================
+% SECTION 8: PRIVACY & ARCHITECTURE
+% =============================================================================
+\needspace{10\baselineskip}
+\section{Privacy, Permissions \& Architecture}
+
+\begin{wpbox}[wpteal]{No Ads $\cdot$ No Analytics $\cdot$ Offline by Default}
+Euler's Lab has \textbf{no advertising, no analytics and no developer server}. Without Cloud Sync sign-in or your own Gemini key it makes \textbf{no internet requests}, and every alarm, focus session, wall, flashcard and report works offline. App data is excluded from Android cloud backups and device transfers.
 \end{wpbox}
 
-\subsection{Data Flow Transparency}
-\begin{table}[ht!]
+\subsection{Where Data Goes}
+\begin{table}[H]
 \centering
 \small
 \begin{tabularx}{\textwidth}{@{}L{3.5cm}L{3.2cm}Y@{}}
 \toprule
-\textbf{\sffamily Data Category} & \textbf{\sffamily Default Scope} & \textbf{\sffamily Network / Retention Policy} \\
+\textbf{\sffamily Data} & \textbf{\sffamily Default Scope} & \textbf{\sffamily Network \& Retention} \\
 \midrule
-Push-up camera stream & On-device RAM only & Processed live by ML~Kit Pose Detection; never saved or uploaded. \\
-Day-plan photos & On-device storage & Saved as JPEG files in the app's private storage and shown in Day plans; never uploaded, synced or analysed; removed on delete, on uninstall, or once older than the newest 90 days of plans. \\
-Screen-time \& calendar & Strictly local & Folded on-device from \texttt{UsageEvents} and \texttt{CalendarContract} (only per-app study-app totals share across your own UID if signed in). \\
-Alarms, logs, decks, exams & Local Room DB v5 & Mirrored to private \texttt{users/\{uid\}} Firestore tree \emph{only} when signed into Cloud Sync. \\
-WakeProof Clip items & Paired devices only & Sealed end-to-end with AES-256-GCM; cloud sees ciphertext chunks only ($1\,\text{h}$ TTL). \\
-Gemini API key & Local encrypted store & Stored in \texttt{EncryptedSharedPreferences}; never synced to Firestore. \\
+Push-up camera stream & Memory only & Analysed live by ML~Kit; never saved or sent. \\
+Session-summary photos & On the phone & Private storage, newest 90 days; never uploaded, synced, backed up or analysed. \\
+Recall notes, top three & On the device & Recall notes stay local (in your own backup file); the newest top three syncs with Cloud Sync on. \\
+Screen time \& calendar & On the device & Read on the device; only per-app study totals and focus event titles sync, to your own account. \\
+Your music & On the device & Played inside the app; never uploaded or copied. \\
+Alarms, history, cards, exams & Local Room database & Mirrored to your private Firestore area only with Cloud Sync on. \\
+Clip items & Your paired devices & End-to-end encrypted; the cloud sees ciphertext only (1\,h). \\
+Gemini key & Encrypted on the device & Never synced. Notes or photos go to Gemini only when you ask for a draft or chat. \\
 \bottomrule
 \end{tabularx}
-\caption{Summary of data handling across WakeProof features.}
+\caption{Data handling across Euler's Lab.}
 \end{table}
 
-\subsection{Android Permissions Reference}
-\begin{table}[ht!]
+\subsection{Android Permissions}
+\begin{table}[H]
 \centering
 \footnotesize
 \begin{tabularx}{\textwidth}{@{}L{5.6cm}Y@{}}
 \toprule
-\textbf{\sffamily Permission / Special Grant} & \textbf{\sffamily Exact Purpose in WakeProof} \\
+\textbf{\sffamily Permission / Special Grant} & \textbf{\sffamily Purpose} \\
 \midrule
-\texttt{CAMERA} & Live on-device push-up pose counting, the day-plan photo, and QR pairing for WakeProof Clip. \\
-\texttt{USE\_EXACT\_ALARM}, \texttt{POST\_NOTIFICATIONS}, \newline \texttt{USE\_FULL\_SCREEN\_INTENT} & Firing exact morning alarms, lock-screen alarm presentation, timer status, and pre-event reminders. \\
-\texttt{PACKAGE\_USAGE\_STATS} {\scriptsize (Special)} & Honest event-folded screen time, daily app caps, Mon--Thu \texttt{08:10--08:50} / Fri--Sun walls, and focus tree/session walls. \\
-\texttt{SYSTEM\_ALERT\_WINDOW} {\scriptsize (Special)} & Floating Pomodoro bubble, launching alarm/block walls reliably over foreground apps, and covering pop-up windows. \\
-\texttt{BIND\_NOTIFICATION\_LISTENER\_\allowbreak SERVICE} {\scriptsize (Special)} & Cancelling notifications from currently walled apps and pausing active media sessions of walled apps (never reads message text). \\
-\texttt{ACCESS\_NOTIFICATION\_POLICY} {\scriptsize (Special)} & Automatically enabling Priority Do Not Disturb during focus sessions across walled devices and restoring it afterwards. \\
-\texttt{READ\_CALENDAR} & Displaying today's agenda, 5-minute event reminders, and exact-length event focus sessions. \\
-\texttt{ROLE\_HOME} {\scriptsize (Optional Role)} & Running WakeProof's calm, text-only minimalist launcher as the default Android home screen. \\
+\texttt{CAMERA} & Counting push-ups, photographing session summaries, scanning the Clip pairing code. \\
+\texttt{USE\_EXACT\_ALARM}, \texttt{POST\_NOTIFICATIONS}, \newline \texttt{USE\_FULL\_SCREEN\_INTENT} & Exact alarms, the lock-screen alarm, timer status and event reminders. \\
+\texttt{PACKAGE\_USAGE\_STATS} {\scriptsize (Special)} & Screen time, daily limits, every schedule wall, the focus tree and the sleep score. \\
+\texttt{SYSTEM\_ALERT\_WINDOW} {\scriptsize (Special)} & The floating timer bubble, alarm and wall screens over other apps, and pop-up covers. \\
+\texttt{BIND\_NOTIFICATION\_LISTENER\_\allowbreak SERVICE} {\scriptsize (Special)} & Removing notifications of walled apps and pausing their media (never reads content). \\
+\texttt{ACCESS\_NOTIFICATION\_POLICY} {\scriptsize (Special)} & Do Not Disturb during focus sessions, restored afterwards. \\
+\texttt{READ\_CALENDAR} & Today's agenda, event reminders and event-length sessions. \\
+\texttt{READ\_MEDIA\_AUDIO} {\scriptsize (Optional)} & Choosing your own music by album or artist (a picked folder needs no permission). \\
+\texttt{ROLE\_HOME} {\scriptsize (Optional)} & Using Euler's Lab as the home screen. \\
 \bottomrule
 \end{tabularx}
-\caption{Permissions requested by WakeProof and why each exists.}
+\caption{Permissions and why each exists.}
 \end{table}
 
-\subsection{Engineering Stack Summary}
+\subsection{Engineering Stack}
 \begin{itemize}
-  \item \textbf{Core Android (\texttt{:app}):} Kotlin 2.4, Gradle 9.8 / AGP 9.5, Jetpack Compose + Material~3, Hilt DI, Room SQLite (v5, WAL) + Preferences DataStore, CameraX + ExifInterface, ML~Kit Pose Detection \& Barcode Scanning, WorkManager, Jetpack Glance AppWidget, Retrofit~3 + OkHttp~5 + \texttt{kotlinx.serialization} targeting Google Gemini (\texttt{gemini-3.8-flash}).
-  \item \textbf{Wear OS (\texttt{:wear}):} \texttt{ComponentActivity} with \texttt{AmbientLifecycle\allowbreak Observer}, Wear ProtoLayout Tiles (\texttt{StatsTile\allowbreak Service}, \texttt{AgendaTile\allowbreak Service}), Watch-Face Complications (\texttt{AgendaComplication\allowbreak Service}), Ongoing Activity API, Wearable Data Layer / MessageClient, and direct Firebase Auth + Firestore upload.
-  \item \textbf{Companion Tooling (\texttt{tools/}):} Circular stereo OGG Vorbis soundscape synthesizer (\texttt{tools/sounds/}), and the Ubuntu GNOME Wayland D-Bus + Python AES-256-GCM clipboard daemon (\texttt{tools/clip/}).
+  \item \textbf{\texttt{:app}:} Kotlin 2.4 (built into AGP 9.5), Gradle 9.8, Jetpack Compose + Material~3, Hilt, Room (WAL) + DataStore, CameraX, ML~Kit Pose Detection \& Barcode Scanning, WorkManager, Glance widget, Retrofit~3 + OkHttp~5 + \texttt{kotlinx.serialization} for Gemini.
+  \item \textbf{\texttt{:wear}:} Compose for Wear OS (Material~3), ProtoLayout tiles, complications, Ongoing Activity, Wearable Data Layer, and direct Firebase Auth + Firestore.
+  \item \textbf{\texttt{tools/}:} the circular OGG soundscape generator and the Python + GNOME Shell clipboard daemon.
 \end{itemize}
 
 \vspace{8pt}
 {\color{wpborder}\hrule height 0.6pt}
 \vspace{4pt}
-{\sloppy\sffamily\footnotesize\color{wpmuted}Document generated November 2026 for \textbf{WakeProof v1.9.0}. For source code, issue tracking, and updates visit \href{https://github.com/ogenrwotdaniel/wakeproof}{github.com/ogenrwotdaniel/wakeproof} and \href{https://ogenrwotdaniel.github.io/wakeproof/}{ogenrwotdaniel.github.io/wakeproof}.\par}
+{\sloppy\sffamily\footnotesize\color{wpmuted}Document written November 2026 for \textbf{Euler's Lab 2.0.0} (formerly WakeProof). The project is paused until February 2027; the source is archived at \href{https://github.com/ogenrwotdaniel/eulers-lab}{github.com/ogenrwotdaniel/eulers-lab}, and the project page is \href{https://ogenrwotdaniel.github.io/wakeproof/}{ogenrwotdaniel.github.io/wakeproof}.\par}
 
 \end{document}
