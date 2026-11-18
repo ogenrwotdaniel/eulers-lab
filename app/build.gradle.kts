@@ -68,8 +68,8 @@ android {
         targetSdk = 36
         // 2 was consumed by an upload Play already holds, and a versionCode can
         // never be reused. The build it names is what matters, not the number.
-        versionCode = 14
-        versionName = "2.0.0"
+        versionCode = 15
+        versionName = "2.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

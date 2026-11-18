@@ -148,10 +148,10 @@ class AppBlockService : Service() {
     private val phone by lazy { longNightDevice(this) }
 
     /**
-     * Open between 03:00 and 20:00 (including through the phone's 03:00–08:00
-     * and 18:00–20:00 hours and during focus sessions): Camera, Notes, Claude,
+     * Open between 04:00 and 21:00 (including through the phone's 04:00–08:00
+     * and 18:00–21:00 hours and during focus sessions): Camera, Notes, Claude,
      * Gemini, Smart-Check, AnyOTP, Outlook, KakaoBank, Clock, Calendar, and
-     * system file/photo pickers. Between 20:00 and 03:00 ([sleepWallActive]),
+     * system file/photo pickers. Between 21:00 and 04:00 ([sleepWallActive]),
      * only [sleepExempt] remains open, and on the phone its cameras ([nightExemptAt]).
      */
     private val dayToolsExempt: Set<String>
@@ -164,7 +164,7 @@ class AppBlockService : Service() {
      * What the night wall leaves open at [minuteOfDay]. In bed hours the phone keeps
      * its cameras too (the user, 2026-11-13: "except phone, camera, calendar,
      * wakeproof right from 6pm to 8am"), as its wall copy says; until 2026-11-16 they
-     * were walled from 20:00. The tablet keeps the sleep wall's clock and calendar.
+     * were walled from bed. The tablet keeps the sleep wall's clock and calendar.
      */
     private fun nightExemptAt(minuteOfDay: Int): Set<String> = when {
         !sleepWallActive(minuteOfDay) -> dayToolsExempt
@@ -202,7 +202,7 @@ class AppBlockService : Service() {
     /** [cameraPackages] once it has been read with a camera in it. */
     @Volatile private var nightCameras: Set<String>? = null
 
-    /** Open through the 20:00–03:00 sleep wall: the clock (to check the alarm) and the calendar. */
+    /** Open through the 21:00–04:00 sleep wall: the clock (to check the alarm) and the calendar. */
     private val sleepExempt: Set<String> by lazy {
         (listOfNotNull(
             runCatching {

@@ -2,28 +2,28 @@ package com.ogenrwotdaniel.wakeproof.distraction
 
 /**
  * The night, as the first locked alarm needs it (2026-11-04, user's choice;
- * 20:00–03:00 since 2026-11-11, sleeping 20:00 to the 03:00 alarm):
+ * 21:00–04:00 since 2026-11-19, sleeping 21:00 to the 04:00 alarm):
  *
- * - **Sleep wall** from [SLEEP_START_MINUTES] (20:00, "everything else off
- *   totally" — user's choice, 2026-11-04) to [SLEEP_END_MINUTES] (03:00, the
- *   first locked alarm), with bed at [BEDTIME_MINUTES] (the same 20:00, a
+ * - **Sleep wall** from [SLEEP_START_MINUTES] (21:00, "everything else off
+ *   totally") to [SLEEP_END_MINUTES] (04:00, the
+ *   first locked alarm), with bed at [BEDTIME_MINUTES] (the same 21:00, a
  *   "lights out" reminder): every app
  *   but the essentials (calls, home screen, Settings,
  *   WakeProof itself — the alarm runs in it), the clock and the calendar is
  *   walled. Seven hours in bed; without a bedtime the alarm turns into sleep
  *   loss rather than discipline. A focus session running into the night keeps
  *   its focus-list apps.
- * - **Charging** from [CHARGE_FROM_MINUTES] (20:30) until the last locked alarm: a phone
+ * - **Charging** from [CHARGE_FROM_MINUTES] (21:30) until the last locked alarm: a phone
  *   below [CHARGE_BELOW_PERCENT] % and not charging is nagged every
  *   [CHARGE_NAG_EVERY_MILLIS]. A flat phone is the one way out of a locked
  *   alarm that no rule can close.
  *
- * Fixed rather than settings: a bedtime that can be moved at 20:05 is not one.
+ * Fixed rather than settings: a bedtime that can be moved at 21:05 is not one.
  */
-const val SLEEP_START_MINUTES = 20 * 60
+const val SLEEP_START_MINUTES = 21 * 60
 /** Bed is when the wall goes up. */
 const val BEDTIME_MINUTES = SLEEP_START_MINUTES
-const val SLEEP_END_MINUTES = 3 * 60
+const val SLEEP_END_MINUTES = 4 * 60
 // Half an hour after lights-out, which already says "phone on charge": both at once was two alerts together.
 const val CHARGE_FROM_MINUTES = SLEEP_START_MINUTES + 30
 const val CHARGE_BELOW_PERCENT = 40
@@ -39,7 +39,7 @@ fun sleepWallActive(minuteOfDay: Int): Boolean =
  * the phone not tablet"). The same wall as the sleep wall, with the same
  * verdict, from [PHONE_NIGHT_START_MINUTES] to [PHONE_NIGHT_END_MINUTES]; the
  * tablet keeps the sleep wall's own hours. Bed, lights out, the charge nag,
- * the quiet hours and the sleep score stay on 20:00–03:00 everywhere: this is
+ * the quiet hours and the sleep score stay on 21:00–04:00 everywhere: this is
  * about the phone being shut, not about when the user sleeps.
  */
 const val PHONE_NIGHT_START_MINUTES = 18 * 60
@@ -151,8 +151,8 @@ fun longNightDevice(context: android.content.Context): Boolean =
 
 /**
  * Pure: bed hours take no work (2026-11-13, the user: "no exception or no work
- * whether on tablet, watch or phone between 8pm to 3am"). No focus session
- * starts or is joined then on any device, and one that runs into them loses
+ * whether on tablet, watch or phone"; 21:00 to 04:00 since 2026-11-19). No focus
+ * session starts or is joined then on any device, and one that runs into them loses
  * its focus-list apps to the sleep wall like everything else.
  */
 fun bedHoursShutWork(minuteOfDay: Int): Boolean = sleepWallActive(minuteOfDay)
@@ -166,7 +166,7 @@ fun sessionReachesBed(minuteOfDay: Int, minutes: Int): Boolean =
     bedHoursShutWork(minuteOfDay) || minuteOfDay + minutes > SLEEP_START_MINUTES
 
 /** Said when a session start is refused for bed hours. */
-const val BED_HOURS_TEXT = "No focus between 20:00 and 03:00: this session would not end by 20:00."
+const val BED_HOURS_TEXT = "No focus between 21:00 and 04:00: this session would not end by 21:00."
 
 /**
  * A call is ringing or under way (the audio mode says so without any

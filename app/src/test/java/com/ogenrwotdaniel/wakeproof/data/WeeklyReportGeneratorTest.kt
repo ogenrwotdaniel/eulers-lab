@@ -55,11 +55,11 @@ class WeeklyReportGeneratorTest {
     fun `late nights are called out and a good week of sleep is a win`() {
         val late = (0L..6L).map { NightScreen(monday + it, if (it < 3) 45 else 0) }
         val bad = generator.report(stats().copy(nights = late))
-        assertTrue(bad.contains("in use after 20:00 on 3 of 7 nights"))
+        assertTrue(bad.contains("in use after 21:00 on 3 of 7 nights"))
         val good = generator.report(stats().copy(nights = (0L..6L).map { NightScreen(monday + it, 1) }))
-        assertTrue(good.substringBefore("Watch out:").contains("Phone down by 20:00 on 7 of 7 nights."))
+        assertTrue(good.substringBefore("Watch out:").contains("Phone down by 21:00 on 7 of 7 nights."))
         // Unmeasured nights say nothing either way.
-        assertTrue(!generator.report(stats().copy(nights = listOf(NightScreen(monday, null)))).contains("20:00"))
+        assertTrue(!generator.report(stats().copy(nights = listOf(NightScreen(monday, null)))).contains("21:00"))
     }
 
     @Test

@@ -48,14 +48,6 @@ data object ForestRoute
 @Serializable
 data class SummaryCaptureRoute(val replacing: String? = null)
 
-/** The top-three alarm (`TOP_THREE_MINUTES`): tomorrow's top three, written to silence it. */
-@Serializable
-data object TopThreeVerifyRoute
-
-/** Writing tomorrow's top three from Home, with no alarm behind it. */
-@Serializable
-data object TopThreeRoute
-
 /** The library of session-summary photos. */
 @Serializable
 data object SessionSummariesRoute

@@ -21,19 +21,16 @@ import java.util.UUID
  * next reconcile ([com.ogenrwotdaniel.wakeproof.alarm.retiredAlarms]).
  * [PLAN] (a photo of the day's handwritten plan) is retired the same way
  * since 2026-11-13: the user writes a summary after every focus session
- * instead. [SHUTDOWN] was the evening review, retired the same day and brought
- * back that evening as the 19:50 (19:40 since 2026-11-14) alarm for
- * tomorrow's top three alone: it
- * exists only as that locked slot, and any other row of the kind is deleted
- * ([com.ogenrwotdaniel.wakeproof.alarm.retiredAlarms]). [REVIEW] is a run of due
- * flashcards.
+ * instead. [SHUTDOWN] was the evening review and then the 19:40 top-three
+ * alarm, retired too since 2026-11-19 at the user's request ("remove tomorrow
+ * top three features"). [REVIEW] is a run of due flashcards.
  */
 @Serializable
 enum class AlarmType {
     PUSHUP, WATER, CUSTOM, MATH, PLAN, REVIEW, SHUTDOWN;
 
     /** No longer offered, armed or counted. */
-    val retired: Boolean get() = this == WATER || this == PLAN
+    val retired: Boolean get() = this == WATER || this == PLAN || this == SHUTDOWN
 }
 
 /**

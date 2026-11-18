@@ -864,7 +864,7 @@ private fun SleepCard(nights: List<NightScreen>) {
     val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
     SectionCard(
         title = "Sleep",
-        caption = "Phone down by 20:00 on ${score.onTime} of ${score.measured} nights"
+        caption = "Phone down by 21:00 on ${score.onTime} of ${score.measured} nights"
     ) {
         nights.forEach { night ->
             val day = java.time.LocalDate.ofEpochDay(night.epochDay).dayOfWeek
@@ -873,7 +873,7 @@ private fun SleepCard(nights: List<NightScreen>) {
                 text = when {
                     night.minutes == null -> "$day  not measured"
                     nightOnTime(night) -> "$day  down on time ✓"
-                    else -> "$day  screen on ${formatMinutes(night.minutes.toLong())} after 20:00"
+                    else -> "$day  screen on ${formatMinutes(night.minutes.toLong())} after 21:00"
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (night.minutes != null && !nightOnTime(night)) MaterialTheme.colorScheme.error
@@ -881,7 +881,7 @@ private fun SleepCard(nights: List<NightScreen>) {
             )
         }
         Text(
-            text = "Counted from 20:00 to 03:00; up to $SLEEP_GRACE_MINUTES minutes of screen is still on time.",
+            text = "Counted from 21:00 to 04:00; up to $SLEEP_GRACE_MINUTES minutes of screen is still on time.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

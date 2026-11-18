@@ -9,10 +9,10 @@ import com.ogenrwotdaniel.wakeproof.data.db.AlarmType
  * The LOCKED alarms (2026-11-04, the user's request: "my first alarm at 3am,
  * no way around, can't be turned off on the phone, surviving restart too like
  * focus timing"; a second at 05:30 the same night, and both at 25 pushups).
- * Now one alone: 03:00 at 10 pushups ([SLOTS], [REPS]). The 05:40 pushups,
- * the fixed 08:20 day-plan alarm (water until 2026-11-12) and the 19:30
- * evening review were removed on 2026-11-13 at the user's request: a summary
- * is written after every focus session now ([DROPPED_KEYS]).
+ * Now one alone: 04:00 at 10 pushups ([SLOTS], [REPS]; moved from 03:00 on
+ * 2026-11-19). The 05:40 pushups, the fixed 08:20 day-plan alarm (water until
+ * 2026-11-12), the 19:30 evening review (removed 2026-11-13) and the 19:40
+ * top-three alarm (removed 2026-11-19) are gone ([DROPPED_KEYS]).
  *
  * Each of [SLOTS] pins one alarm on the ringing device to its time and kind,
  * every day, enabled. Nothing on the phone can change it — the Settings rows
@@ -43,8 +43,7 @@ object StrictAlarm {
          * False for a slot that is fixed but not hard: its row is as uneditable
          * as any locked one, but the ring keeps the ordinary snooze and
          * emergency dismiss, is not resumed after a restart and is not backed
-         * up by the watch. The evening's top three is one: an alarm to write
-         * three lines must not be able to keep the user from bed.
+         * up by the watch.
          */
         val hard: Boolean = true
     ) {
@@ -57,18 +56,7 @@ object StrictAlarm {
      * device would take the row it still holds under an old key for a new slot's.
      */
     val PINNED: List<IndexedValue<Slot>> = listOf(
-        IndexedValue(0, Slot(3, 0)),
-        // Tomorrow's top three, ten minutes before bed (2026-11-13, the user:
-        // "make it alarm then for top three"). Key 4: 3 was the 19:30 evening
-        // review, and a device still holding that row must delete it, not move it.
-        IndexedValue(
-            4,
-            Slot(
-                com.ogenrwotdaniel.wakeproof.plan.TOP_THREE_MINUTES / 60,
-                com.ogenrwotdaniel.wakeproof.plan.TOP_THREE_MINUTES % 60,
-                AlarmType.SHUTDOWN, hard = false
-            )
-        )
+        IndexedValue(0, Slot(4, 0))
     )
 
     /** The locked alarms' times and kinds, in order. */
@@ -77,11 +65,11 @@ object StrictAlarm {
     /**
      * Storage keys of slots that no longer exist: 1 was the 05:40 pushups, 2
      * the 08:20 day plan (water before that), 3 the 19:30 evening review (all
-     * removed 2026-11-13). The row a device still holds under one is deleted
-     * at the next reconcile, not left behind as an ordinary alarm that would
-     * go on ringing at the old time.
+     * removed 2026-11-13), 4 the 19:40 top-three alarm (removed 2026-11-19).
+     * The row a device still holds under one is deleted at the next reconcile,
+     * not left behind as an ordinary alarm that would go on ringing at the old time.
      */
-    val DROPPED_KEYS = listOf(1, 2, 3)
+    val DROPPED_KEYS = listOf(1, 2, 3, 4)
 
     /**
      * Former pushup [SLOTS]. Copies of an old locked pair that sync back (from
@@ -90,11 +78,12 @@ object StrictAlarm {
      * and emergency dismiss the day the slots moved.
      */
     val RETIRED_SLOTS = listOf(
+        Slot(3, 0),
         Slot(5, 30),
-        Slot(4, 0),
         Slot(6, 5),
         Slot(5, 40),
-        Slot(19, 50, AlarmType.SHUTDOWN, hard = false)
+        Slot(19, 50, AlarmType.SHUTDOWN, hard = false),
+        Slot(19, 40, AlarmType.SHUTDOWN, hard = false)
     )
 
     /** Minutes of the day an unlocked alarm of [type] is kept silent on: current and retired slots. */

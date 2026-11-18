@@ -56,18 +56,18 @@ class DailyGoalsTest {
     fun `old copies of the locked pair ask for no extra pushups`() {
         val goals = dailyGoalsFrom(
             listOf(
-                alarm(AlarmType.PUSHUP, hour = 3, minute = 0), alarm(AlarmType.PUSHUP, hour = 5, minute = 40),
+                alarm(AlarmType.PUSHUP, hour = 4, minute = 0), alarm(AlarmType.PUSHUP, hour = 5, minute = 40),
                 // Copies synced back from a reinstall, and the pairs before the moves.
                 alarm(AlarmType.PUSHUP, hour = 3, minute = 0), alarm(AlarmType.PUSHUP, hour = 4, minute = 0),
                 alarm(AlarmType.PUSHUP, hour = 5, minute = 30), alarm(AlarmType.PUSHUP, hour = 6, minute = 5),
                 alarm(AlarmType.PUSHUP, hour = 7, minute = 0),
                 // A retired kind asks for nothing, wherever it stands.
                 alarm(AlarmType.PLAN, hour = 8, minute = 20), alarm(AlarmType.WATER, hour = 12, minute = 0),
-                alarm(AlarmType.SHUTDOWN, hour = 19, minute = 30), alarm(AlarmType.REVIEW, hour = 18, minute = 0)
+                alarm(AlarmType.SHUTDOWN, hour = 19, minute = 40), alarm(AlarmType.REVIEW, hour = 18, minute = 0)
             ),
             DayOfWeek.MONDAY
         )
-        // 03:00 and the user's own 07:00; the removed 05:40 slot asks for none any more.
+        // 04:00 and the user's own 07:00; the removed 03:00 and 05:40 slots ask for none any more.
         assertEquals(2, goals.pushupTarget)
         assertEquals(1, goals.reviewTarget)
     }

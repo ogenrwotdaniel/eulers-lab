@@ -226,8 +226,8 @@ class StudyBrowserActivity : ComponentActivity() {
      */
     private fun asleep(): Boolean = clockDoubted() || nightNow()
 
-    // Shut only during actual bed hours (20:00 to 03:00, [sleepWallActive]):
-    // Blackboard & Research opens unrestricted from 03:00 to 20:00 on both phone and tablet.
+    // Shut only during actual bed hours (21:00 to 04:00, [sleepWallActive]):
+    // Blackboard & Research opens unrestricted from 04:00 to 21:00 on both phone and tablet.
     private fun nightNow(): Boolean =
         LocalTime.now().let { com.ogenrwotdaniel.wakeproof.distraction.sleepWallActive(it.hour * 60 + it.minute) }
 
@@ -261,7 +261,7 @@ class StudyBrowserActivity : ComponentActivity() {
                     "and connect to the internet, then open Blackboard again."
             } else {
                 val end = com.ogenrwotdaniel.wakeproof.distraction.SLEEP_END_MINUTES
-                "Shut for the night (20:00–03:00). Blackboard opens again at ${formatAlarmTime(context, end / 60, end % 60)}."
+                "Shut for the night (21:00–04:00). Blackboard opens again at ${formatAlarmTime(context, end / 60, end % 60)}."
             }
             setTextColor(Color.WHITE)
             textSize = 20f

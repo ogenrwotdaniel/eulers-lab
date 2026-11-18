@@ -66,16 +66,10 @@ app:
   uploaded, synced to your other devices or sent to any AI service, and
   uninstalling the app removes them. Euler's Lab does not read or analyse what
   is on the page.
-- **Day-plan photos and evening reviews from an earlier version.** The
-  day-plan alarm and the evening review were removed on 13 November 2026. The
-  photos and reviews they had saved are deleted from the device the first time
-  the updated app is opened.
-- **Tomorrow's top three.** The up to three lines you write in the evening
-  for the next day are kept in the app's private storage on that device
-  (the newest 31 evenings). If you turn on Cloud Sync, the most recent
-  evening's lines are also stored in your own Firestore account data so your
-  other devices can show them, and are deleted with it. They are not in the
-  backup file and are never sent to any AI service.
+- **Day-plan photos, evening reviews and top-three lists from earlier versions.** The
+  day-plan alarm and the evening review were removed on 13 November 2026, and
+  tomorrow's top three on 19 November 2026. The photos, reviews and lists they
+  had saved on the device are deleted the first time the updated app is opened.
 - **Recall notes.** The lines you write after a focus block are kept in
   the app's private storage on that device. They are not synced. They are
   included in the JSON backup file you can export yourself. A recall note is
@@ -92,7 +86,7 @@ app:
   access at any time in Android Settings → Apps → Euler's Lab → Permissions, or
   by picking a different folder.
 - **Night screen use.** For the sleep score Euler's Lab reads, from the same
-  Usage access, when the screen was on between 20:00 and 03:00. It is worked
+  Usage access, when the screen was on between 21:00 and 04:00. It is worked
   out on the device each time and sent nowhere.
 - **Your Gemini API key**, stored encrypted (Android EncryptedSharedPreferences).
 - **Your paired watch.** If you install the Euler's Lab watch app, your phone

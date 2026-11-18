@@ -15,7 +15,6 @@ import com.ogenrwotdaniel.wakeproof.ui.navigation.AlarmRingingRoute
 import com.ogenrwotdaniel.wakeproof.ui.navigation.MathVerifyRoute
 import com.ogenrwotdaniel.wakeproof.ui.navigation.PushupVerifyRoute
 import com.ogenrwotdaniel.wakeproof.ui.navigation.ReviewVerifyRoute
-import com.ogenrwotdaniel.wakeproof.ui.navigation.TopThreeVerifyRoute
 import com.ogenrwotdaniel.wakeproof.ui.verify.MathVerifyScreen
 import com.ogenrwotdaniel.wakeproof.ui.verify.PushupVerifyScreen
 import com.ogenrwotdaniel.wakeproof.ui.verify.ReviewVerifyScreen
@@ -45,11 +44,6 @@ fun AlarmFlowNavGraph(
     var reviewStandInFor by rememberSaveable { mutableStateOf(NO_STAND_IN) }
     val alarmId = alarm?.id ?: -1L
 
-    val context = androidx.compose.ui.platform.LocalContext.current
-    fun unlocked(): Boolean = runCatching {
-        context.getSystemService(android.os.UserManager::class.java).isUserUnlocked
-    }.getOrDefault(true)
-
     NavHost(navController = navController, startDestination = AlarmRingingRoute()) {
         composable<AlarmRingingRoute> {
             AlarmRingingScreen(
@@ -57,14 +51,6 @@ fun AlarmFlowNavGraph(
                 onStartVerification = { type ->
                     when (type) {
                         AlarmType.REVIEW -> navController.navigate(ReviewVerifyRoute)
-                        // Before the first unlock the list can be neither read nor
-                        // kept: sums instead, never a free exit.
-                        AlarmType.SHUTDOWN -> if (unlocked()) {
-                            navController.navigate(TopThreeVerifyRoute)
-                        } else {
-                            reviewStandInFor = NO_STAND_IN
-                            navController.navigate(MathVerifyRoute)
-                        }
                         AlarmType.MATH -> {
                             reviewStandInFor = NO_STAND_IN
                             navController.navigate(MathVerifyRoute)
@@ -97,16 +83,6 @@ fun AlarmFlowNavGraph(
                 onSnooze = { viewModel.snooze(onSnooze) },
                 strict = strict,
                 goalKind = if (reviewStandInFor == alarmId) GoalKind.REVIEW else GoalKind.MATH
-            )
-        }
-        composable<TopThreeVerifyRoute> {
-            com.ogenrwotdaniel.wakeproof.ui.plans.TopThreeScreen(
-                onFinish = onFinish,
-                ringing = true,
-                onVerified = onVerified,
-                onEmergencyDismiss = onEmergencyDismiss,
-                snoozesLeft = snoozesLeft,
-                onSnooze = { viewModel.snooze(onSnooze) }
             )
         }
         composable<ReviewVerifyRoute> {

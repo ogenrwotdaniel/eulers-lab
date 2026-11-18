@@ -109,7 +109,7 @@ class WeeklyReportGenerator @Inject constructor() {
         }
         val sleep = sleepScore(stats.nights)
         if (sleep.measured >= 3 && sleep.onTime * 100 >= sleep.measured * 70) {
-            lines += "Phone down by 20:00 on ${sleep.onTime} of ${sleep.measured} nights."
+            lines += "Phone down by 21:00 on ${sleep.onTime} of ${sleep.measured} nights."
         }
         val pushupDays = stats.days.count { it.pushupDone }
         if (pushupDays > 0) {
@@ -158,7 +158,7 @@ class WeeklyReportGenerator @Inject constructor() {
         val lateNights = sleep.measured - sleep.onTime
         if (sleep.measured >= 3 && lateNights >= 2) {
             val worst = stats.nights.filter { it.minutes != null }.maxByOrNull { it.minutes ?: 0 }
-            lines += "The phone was in use after 20:00 on $lateNights of ${sleep.measured} nights" +
+            lines += "The phone was in use after 21:00 on $lateNights of ${sleep.measured} nights" +
                 (worst?.let { " (${dayName(it.epochDay)}: ${formatDuration(it.minutes ?: 0)})." } ?: ".")
         }
 

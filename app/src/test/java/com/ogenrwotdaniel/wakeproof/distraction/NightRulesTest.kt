@@ -10,12 +10,12 @@ class NightRulesTest {
     private fun hm(h: Int, m: Int) = h * 60 + m
 
     @Test
-    fun `the sleep wall runs 20 00 to 03 00 across midnight`() {
-        assertFalse(sleepWallActive(hm(19, 59)))
-        assertTrue(sleepWallActive(hm(20, 0)))
+    fun `the sleep wall runs 21 00 to 04 00 across midnight`() {
+        assertFalse(sleepWallActive(hm(20, 59)))
+        assertTrue(sleepWallActive(hm(21, 0)))
         assertTrue(sleepWallActive(hm(0, 30)))
-        assertTrue(sleepWallActive(hm(2, 59)))
-        assertFalse(sleepWallActive(hm(3, 0)))
+        assertTrue(sleepWallActive(hm(3, 59)))
+        assertFalse(sleepWallActive(hm(4, 0)))
         assertFalse(sleepWallActive(hm(12, 0)))
     }
 
@@ -36,9 +36,10 @@ class NightRulesTest {
     @Test
     fun `the phone's extra hours shut the app and leave its notifications`() {
         assertFalse(nightWallStrips(hm(18, 30)))
-        assertTrue(nightWallStrips(hm(20, 0)))
-        assertTrue(nightWallStrips(hm(2, 59)))
-        assertFalse(nightWallStrips(hm(3, 0)))
+        assertFalse(nightWallStrips(hm(20, 30)))
+        assertTrue(nightWallStrips(hm(21, 0)))
+        assertTrue(nightWallStrips(hm(3, 59)))
+        assertFalse(nightWallStrips(hm(4, 0)))
         assertFalse(nightWallStrips(hm(7, 30)))
     }
 
@@ -52,14 +53,14 @@ class NightRulesTest {
         assertEquals("Time to sleep", bed.first)
         assertTrue(bed.second.contains("08:00"))
         val tablet = nightWallCopy(hm(22, 0), phone = false, formatClock = clock)
-        assertTrue(tablet.second.contains("03:00"))
+        assertTrue(tablet.second.contains("04:00"))
         assertFalse(tablet.second.contains("tablet"))
     }
 
     @Test
-    fun `quiet hours start with the wall at 20 00 and end at the last alarm`() {
-        assertFalse(nightQuiet(hm(19, 59), lastSlotMinutes = hm(5, 40)))
-        assertTrue(nightQuiet(hm(20, 0), lastSlotMinutes = hm(5, 40)))
+    fun `quiet hours start with the wall at 21 00 and end at the last alarm`() {
+        assertFalse(nightQuiet(hm(20, 59), lastSlotMinutes = hm(5, 40)))
+        assertTrue(nightQuiet(hm(21, 0), lastSlotMinutes = hm(5, 40)))
         assertTrue(nightQuiet(hm(5, 39), lastSlotMinutes = hm(5, 40)))
         assertFalse(nightQuiet(hm(5, 40), lastSlotMinutes = hm(5, 40)))
     }
@@ -83,13 +84,13 @@ class NightRulesTest {
                 capSpent = false, gated = false, sleeping = true, sleepKeepsSession = false
             )
         )
-        assertTrue(bedHoursShutWork(hm(20, 0)))
-        assertTrue(bedHoursShutWork(hm(2, 59)))
-        assertFalse(bedHoursShutWork(hm(3, 0)))
+        assertTrue(bedHoursShutWork(hm(21, 0)))
+        assertTrue(bedHoursShutWork(hm(3, 59)))
+        assertFalse(bedHoursShutWork(hm(4, 0)))
         assertFalse(bedHoursShutWork(hm(18, 30)))
-        // Nothing starts that would still be running at 20:00.
-        assertFalse(sessionReachesBed(hm(18, 0), minutes = 120))
-        assertTrue(sessionReachesBed(hm(18, 1), minutes = 120))
+        // Nothing starts that would still be running at 21:00.
+        assertFalse(sessionReachesBed(hm(19, 0), minutes = 120))
+        assertTrue(sessionReachesBed(hm(19, 1), minutes = 120))
         assertTrue(sessionReachesBed(hm(19, 30), minutes = 180))
         assertTrue(sessionReachesBed(hm(21, 0), minutes = 0))
         assertFalse(sessionReachesBed(hm(4, 0), minutes = 180))
@@ -100,21 +101,21 @@ class NightRulesTest {
     }
 
     @Test
-    fun `lights out once, from 20 00`() {
-        assertTrue(lightsOutDue(hm(20, 0), sentOnDay = 9, today = 10))
-        assertTrue(lightsOutDue(hm(20, 29), sentOnDay = 9, today = 10))
-        assertFalse(lightsOutDue(hm(20, 30), sentOnDay = 9, today = 10))
-        assertFalse(lightsOutDue(hm(19, 59), sentOnDay = 9, today = 10))
-        assertFalse(lightsOutDue(hm(20, 5), sentOnDay = 10, today = 10))
+    fun `lights out once, from 21 00`() {
+        assertTrue(lightsOutDue(hm(21, 0), sentOnDay = 9, today = 10))
+        assertTrue(lightsOutDue(hm(21, 29), sentOnDay = 9, today = 10))
+        assertFalse(lightsOutDue(hm(21, 30), sentOnDay = 9, today = 10))
+        assertFalse(lightsOutDue(hm(20, 59), sentOnDay = 9, today = 10))
+        assertFalse(lightsOutDue(hm(21, 5), sentOnDay = 10, today = 10))
     }
 
     @Test
     fun `charging nag at night, low, unplugged, at most every half hour`() {
         val now = 10_000_000L
         assertTrue(chargeNagDue(hm(22, 0), 30, charging = false, lastNagAt = 0L, now = now))
-        assertTrue(chargeNagDue(hm(20, 30), 30, charging = false, lastNagAt = 0L, now = now))
-        assertFalse(chargeNagDue(hm(20, 0), 30, charging = false, lastNagAt = 0L, now = now))
-        assertTrue(chargeNagDue(hm(2, 59), 30, charging = false, lastNagAt = 0L, now = now))
+        assertTrue(chargeNagDue(hm(21, 30), 30, charging = false, lastNagAt = 0L, now = now))
+        assertFalse(chargeNagDue(hm(21, 0), 30, charging = false, lastNagAt = 0L, now = now))
+        assertTrue(chargeNagDue(hm(3, 59), 30, charging = false, lastNagAt = 0L, now = now))
         // Between the two locked alarms the phone must stay on too.
         assertTrue(chargeNagDue(hm(5, 0), 30, false, lastNagAt = 0L, now = now, lastSlotMinutes = hm(5, 40)))
         assertFalse(chargeNagDue(hm(5, 40), 30, false, lastNagAt = 0L, now = now, lastSlotMinutes = hm(5, 40)))

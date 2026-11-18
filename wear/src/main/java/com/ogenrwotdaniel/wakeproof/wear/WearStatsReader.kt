@@ -82,13 +82,13 @@ fun summaryHolds(untilMillis: Long, now: Long): Boolean =
     untilMillis - now in 1..SUMMARY_HOLD_MAX_MILLIS
 
 /**
- * Pure: bed hours (20:00 to 03:00; matches `bedHoursShutWork` in `:app`) take
+ * Pure: bed hours (21:00 to 04:00; matches `bedHoursShutWork` in `:app`) take
  * no work, so no session starts or is followed on the watch either.
  */
-fun bedHours(minuteOfDay: Int): Boolean = minuteOfDay >= 20 * 60 || minuteOfDay < 3 * 60
+fun bedHours(minuteOfDay: Int): Boolean = minuteOfDay >= 21 * 60 || minuteOfDay < 4 * 60
 
 /** Said when a start is refused in bed hours. */
-const val BED_HOURS_TEXT = "No focus between 20:00 and 03:00. Go to bed."
+const val BED_HOURS_TEXT = "No focus between 21:00 and 04:00. Go to bed."
 
 /** Reads the latest [WearStats] the phone pushed onto the Data Layer. */
 object WearStatsReader {
