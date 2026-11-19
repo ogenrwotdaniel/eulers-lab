@@ -124,7 +124,9 @@ fun SettingsScreen(
             }
             val lockedIds = viewModel.strictAlarmSyncIds
             alarms.forEach { alarm ->
-                if (alarm.syncId in lockedIds) {
+                // The top-three alarm is fixed on every device: on the tablet the
+                // phone's row is not locked here, and must not look editable.
+                if (alarm.syncId in lockedIds || alarm.type == AlarmType.SHUTDOWN || alarm.type == AlarmType.READING) {
                     LockedAlarmRow(alarm)
                     return@forEach
                 }
@@ -936,15 +938,29 @@ private fun LockedAlarmRow(alarm: com.ogenrwotdaniel.wakeproof.data.db.Alarm) {
             text = formatAlarmTime(context, alarm.hour, alarm.minute),
             style = MaterialTheme.typography.headlineSmall
         )
+        // Fixed, not hard: the top three and the reading alarm keep the ordinary
+        // snooze and emergency dismiss.
+        val hard = alarm.type != AlarmType.SHUTDOWN && alarm.type != AlarmType.READING
         Text(
             text = (if (isStrictLabel(alarm.label)) "" else alarm.label).ifBlank { "Locked" } +
-                " · ${StrictAlarm.REPS} pushups · every day",
+                when (alarm.type) {
+                    AlarmType.SHUTDOWN -> " · tomorrow's top three"
+                    AlarmType.READING -> " · 30 minutes of reading"
+                    else -> " · ${StrictAlarm.REPS} pushups"
+                } + " · every day",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
-            text = "Locked. It cannot be changed, switched off or deleted, has no snooze and " +
-                "no emergency dismiss, and keeps ringing after a restart until it is done.",
+            text = if (hard) {
+                "Locked. It cannot be changed, switched off or deleted, has no snooze and " +
+                    "no emergency dismiss, and keeps ringing after a restart until it is done."
+            } else if (alarm.type == AlarmType.READING) {
+                "Fixed. It cannot be changed, switched off or deleted. Start the 30-minute " +
+                    "reading session to silence it."
+            } else {
+                "Fixed. It cannot be changed, switched off or deleted. Write at least one line to silence it."
+            },
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.primary
         )

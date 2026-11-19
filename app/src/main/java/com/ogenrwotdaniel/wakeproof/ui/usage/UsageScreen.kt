@@ -738,7 +738,7 @@ private fun ScheduleCard(
             value = "${clock(nightStart)}–${clock(nightEnd)}"
         )
         Text(
-            text = "Gated apps are social, video, messaging, the Play Store and every browser. " +
+            text = "Gated apps are social, video, messaging and every browser. " +
                 "The night wall shuts every app but calls, " + (if (phone) "the camera, " else "") +
                 "Clock, Calendar, Euler's Lab and a running focus session's apps. In a focus session Do Not Disturb is on.",
             style = MaterialTheme.typography.bodySmall,

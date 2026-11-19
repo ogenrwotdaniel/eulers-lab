@@ -66,7 +66,7 @@ import androidx.compose.ui.text.font.FontStyle
 import com.ogenrwotdaniel.wakeproof.pomodoro.PomodoroPhase
 import com.ogenrwotdaniel.wakeproof.pomodoro.PomodoroState
 import com.ogenrwotdaniel.wakeproof.pomodoro.PomodoroTimerService
-import com.ogenrwotdaniel.wakeproof.pomodoro.THREE_HOUR_SESSION_MINUTES
+import com.ogenrwotdaniel.wakeproof.pomodoro.READING_SESSION_MINUTES
 import com.ogenrwotdaniel.wakeproof.ui.formatAlarmTime
 import com.ogenrwotdaniel.wakeproof.ui.theme.BreakGreen
 import java.util.Calendar
@@ -274,7 +274,8 @@ fun PomodoroScreen(
                 }
                 Text(
                     text = "${settings.focusMinutes} min focus · ${settings.shortBreakMinutes} min " +
-                        "break. 3 h is 3 × 25 min, a 15 min break, then 3 × 25 min. Once " +
+                        "break. 30 min is one unbroken 30-minute block, for reading or a short " +
+                        "job, and owes no written summary. Once " +
                         "started, a session cannot be paused or stopped, and only your " +
                         "focus list (Settings → Study apps) opens until it ends — breaks " +
                         "included.",
@@ -673,14 +674,15 @@ private fun CountdownRing(
  * focus/break lengths, so these are targets rather than promises: 90 minutes
  * at 25+5 is three pomodoros, which is the nearest whole number of blocks that
  * fits. 1 h 30 exists because two pomodoros is short for real work and four is
- * more than most sittings. 3 h replaced Free and is a fixed recipe, not a
- * target — see [sessionPlan].
+ * more than most sittings. 30 min (2026-11-20: the lunch read, or any short
+ * job) replaced 3 h, is a fixed recipe, not a target — see [sessionPlan] —
+ * and owes no summary ([sessionOwesSummary]).
  */
 private val SESSION_LENGTHS = listOf(
+    "30 min" to READING_SESSION_MINUTES,
     "1 h" to 60,
     "1 h 30" to 90,
-    "2 h" to 120,
-    "3 h" to THREE_HOUR_SESSION_MINUTES
+    "2 h" to 120
 )
 
 /**

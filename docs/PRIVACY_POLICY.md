@@ -1,6 +1,6 @@
 # Euler's Lab Privacy Policy
 
-**Effective date:** 17 November 2026
+**Effective date:** 20 November 2026
 **Developer:** Ogenrwot Daniel
 **Contact:** ogenrwotdaniel@unist.ac.kr
 
@@ -27,7 +27,7 @@ app:
   app from opening for the rest of the day, whichever you chose for that app.
   The same on-device check enforces your schedule walls over social, video,
   messaging, portal and browser apps (for example opening only during your
-  daily 12:25–12:50 window) and
+  daily 12:45–12:55 window) and
   keeps apps outside your focus list shut while a focus session runs. These
   statistics are processed on-device only.
 - **Your installed apps.** Euler's Lab reads the list of apps installed on your
@@ -58,7 +58,7 @@ app:
 - **Pushup verification video.** The camera feed used to count pushups is
   processed entirely on-device (Google ML Kit pose detection). No video or
   image from pushup verification is stored or transmitted.
-- **Session-summary photos.** After a focus session the timer asks
+- **Session-summary photos.** After a focus session (except a 30-minute one) the timer asks
   you to write down what you learnt and photograph the page. Each photo is
   saved in the app's private storage on that device, where the Session
   summaries screen shows it and lets you delete it. Only the newest 90 days
@@ -66,10 +66,17 @@ app:
   uploaded, synced to your other devices or sent to any AI service, and
   uninstalling the app removes them. Euler's Lab does not read or analyse what
   is on the page.
-- **Day-plan photos, evening reviews and top-three lists from earlier versions.** The
-  day-plan alarm and the evening review were removed on 13 November 2026, and
-  tomorrow's top three on 19 November 2026. The photos, reviews and lists they
-  had saved on the device are deleted the first time the updated app is opened.
+- **Day-plan photos and evening reviews from an earlier version.** The
+  day-plan alarm and the evening review were removed on 13 November 2026. The
+  photos and reviews they had saved are deleted from the device the first time
+  the updated app is opened.
+- **Tomorrow's top three.** The up to three lines you write in the evening
+  for the next day are kept in the app's private storage on that device
+  (the newest 31 evenings). If you turn on Cloud Sync, the most recent
+  evening's lines are also stored in your own Firestore account data so your
+  other devices can show them, and are deleted with it. They are not in the
+  backup file and are never sent to any AI service. (The feature was away
+  from 19 to 20 November 2026; lists saved before then were deleted.)
 - **Recall notes.** The lines you write after a focus block are kept in
   the app's private storage on that device. They are not synced. They are
   included in the JSON backup file you can export yourself. A recall note is
@@ -205,6 +212,15 @@ personal information from children.
 ## Changes to this policy
 
 Material changes will be posted at this URL with an updated effective date.
+
+**20 November 2026** — brought back tomorrow's top three, stored and synced as
+before, and updated the gated-app schedule examples to the current walls (open
+every day 12:45–12:55). A new daily reading alarm starts a focus session and
+handles no new data; when it rings, your phone tells your paired watch so it can
+chime too, as it already did for the other alarms. A 30-minute focus session no
+longer asks for a session-summary photo. The study browser's research tabs
+changed; it still loads only the listed study sites, and what you open there is
+not recorded by Euler's Lab.
 
 **17 November 2026** — the app is now called Euler's Lab (it was WakeProof).
 Only the name changed: the data it handles, where that data goes and your

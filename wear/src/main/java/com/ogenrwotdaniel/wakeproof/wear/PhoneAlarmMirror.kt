@@ -21,6 +21,8 @@ internal object PhoneAlarmContract {
     const val KEY_STRICT = "a_strict"
     const val KEY_REPS = "a_reps"
     const val KEY_STARTED_AT = "a_started_at"
+    /** The phone's reading alarm: a soft chime here too. Absent from older phones = false. */
+    const val KEY_GENTLE = "a_gentle"
 }
 
 /**
@@ -46,11 +48,16 @@ object PhoneAlarmMirror {
         BackupAlarm.onPhoneRang(context, startedAt)
         val strict = map?.getBoolean(PhoneAlarmContract.KEY_STRICT) == true
         val reps = map?.getInt(PhoneAlarmContract.KEY_REPS) ?: 0
-        val text = if (strict && reps > 0) "$reps pushups on your phone silence it." else "Verify on your phone to silence it."
+        val gentle = map?.getBoolean(PhoneAlarmContract.KEY_GENTLE) == true
+        val text = when {
+            gentle -> "Reading time. Start the 30-minute session on your phone."
+            strict && reps > 0 -> "$reps pushups on your phone silence it."
+            else -> "Verify on your phone to silence it."
+        }
         post(context, text)
-        Buzzer.play(context, phoneAlarmBuzzPattern())
-        // The same song as the phone, on the watch's speaker, when it is bundled.
-        PhoneAlarmRingService.start(context, text)
+        Buzzer.play(context, phoneAlarmBuzzPattern(gentle))
+        // The same sound as the phone, on the watch's speaker: the song, or the soft chime.
+        PhoneAlarmRingService.start(context, text, gentle)
     }
 
     private fun stop(context: Context) {
@@ -105,12 +112,13 @@ fun phoneAlarmBuzzes(ringing: Boolean, startedAt: Long, now: Long): Boolean =
     ringing && startedAt > 0L && now - startedAt in 0 until PHONE_ALARM_STALE_MILLIS
 
 /**
- * Pure: 1 s pulses with 0.6 s gaps for [PHONE_ALARM_BUZZ_MILLIS] — a finite
+ * Pure: 1 s pulses with 0.6 s gaps ([gentle]: 0.35 s taps every 2 s) for [PHONE_ALARM_BUZZ_MILLIS] — a finite
  * waveform, so it ends on its own if the "stopped" never arrives.
  */
-fun phoneAlarmBuzzPattern(): LongArray {
-    val pulse = 1_000L
-    val gap = 600L
+fun phoneAlarmBuzzPattern(gentle: Boolean = false): LongArray {
+    // The reading alarm taps (2026-11-20): felt on the wrist, not a fire drill.
+    val pulse = if (gentle) 350L else 1_000L
+    val gap = if (gentle) 1_650L else 600L
     val pairs = (PHONE_ALARM_BUZZ_MILLIS / (pulse + gap)).toInt()
     return LongArray(pairs * 2) { i -> if (i % 2 == 0) gap else pulse }
 }

@@ -319,8 +319,8 @@ class PomodoroTimerService : Service() {
                     latestSettings = settings
                     settingsLoaded = true
                     // A "1 h" session with 25+5 settings = 2 focus blocks; "2 h" = 4;
-                    // "3 h" is its own fixed recipe. See sessionPlan. A calendar
-                    // event's session lasts exactly as long as the event.
+                    // "30 min" is one fixed 30-minute block. See sessionPlan. A calendar
+                    // event's session runs to the event's end, no block over 25 minutes.
                     val plan = if (exactMinutes > 0) exactSessionPlan(exactMinutes) else sessionPlan(
                         sessionMinutes = sessionMinutes,
                         focusMinutes = settings.focusMinutes,
@@ -623,8 +623,14 @@ class PomodoroTimerService : Service() {
      * call: the phone is the timer), so a tablet following the session is let go.
      * True when the summary is owed.
      */
-    private suspend fun askSummary(endedAtMillis: Long = System.currentTimeMillis(), recovered: Boolean = false): Boolean {
+    private suspend fun askSummary(
+        endedAtMillis: Long = System.currentTimeMillis(),
+        recovered: Boolean = false,
+        owes: Boolean = sessionOwesSummary(_state.value.targetFocusBlocks, focusSeconds, lastFocusSeconds)
+    ): Boolean {
         if (!alarmDevicePolicy.ringsAlarms) return false
+        // A 30-minute session owes no summary ([sessionOwesSummary]).
+        if (!owes) return false
         // A running session always has an id. Blank here means the end path ran
         // twice (the ticker can come round once more before the service is
         // destroyed), and a second ask under a made-up key would start the
@@ -1067,7 +1073,11 @@ class PomodoroTimerService : Service() {
             // Ended while the phone was off or the app was killed: the summary
             // is owed all the same, or a restart would be the way past it.
             sessionId = saved.sessionId
-            askSummary(endedAtMillis = saved.phaseEndsAtMillis, recovered = true)
+            askSummary(
+                endedAtMillis = saved.phaseEndsAtMillis,
+                recovered = true,
+                owes = sessionOwesSummary(saved.targetFocusBlocks, saved.focusSeconds, saved.lastFocusSeconds)
+            )
             endSession()
             stopSelf()
             return
@@ -1223,16 +1233,17 @@ class PomodoroTimerService : Service() {
         // No Pause or Stop actions: a session has no way out (see ACTION_RESUME).
         val builder = Notification.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle("Pomodoro — ${s.phase.label}")
+            .setContentTitle("Euler's Lab — ${s.phase.label}")
             .setContentText(text)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
-            // Marks it as a timer so the paired watch surfaces it as an ongoing
-            // activity; not setLocalOnly, so it bridges to the watch.
             .setCategory(Notification.CATEGORY_STOPWATCH)
+            // Kept on the phone (2026-11-20): bridged, it became a second watch
+            // chip showing only the countdown digits. The watch app draws its own,
+            // titled "Euler's Lab", from the /wakeproof/timer push (TimerNotifier).
+            .setLocalOnly(true)
         if (s.active && s.running) {
-            // Self-ticking countdown: the watch renders a live timer off the
-            // bridged notification without a per-second Bluetooth sync.
+            // Self-ticking countdown, so the shade needs no per-second update.
             builder.setWhen(System.currentTimeMillis() + s.remainingSeconds * 1_000L)
                 .setShowWhen(true)
                 .setUsesChronometer(true)
@@ -1352,7 +1363,7 @@ class PomodoroTimerService : Service() {
 
         /**
          * Starts a session of [sessionMinutes] (60, 90, 120 or the fixed
-         * [THREE_HOUR_SESSION_MINUTES]); 0 means [DEFAULT_SESSION_MINUTES]. Once
+         * [READING_SESSION_MINUTES]); 0 means [DEFAULT_SESSION_MINUTES]. Once
          * started it cannot be paused or stopped.
          */
         fun start(context: Context, sessionMinutes: Int = 0) = context.startForegroundService(

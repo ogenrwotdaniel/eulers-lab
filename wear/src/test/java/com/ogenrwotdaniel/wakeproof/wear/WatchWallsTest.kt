@@ -28,7 +28,7 @@ import org.junit.Test
 class WatchWallsTest {
 
     // 2026-11-14 is a Saturday, 2026-11-16 a Monday.
-    private val inWindow = LocalDateTime.of(2026, 11, 14, 12, 30)
+    private val inWindow = LocalDateTime.of(2026, 11, 14, 12, 50)
     private val mondayNoon = LocalDateTime.of(2026, 11, 16, 12, 0)
     private val now = 1_800_000_000_000L
 
@@ -75,13 +75,13 @@ class WatchWallsTest {
     }
 
     @Test
-    fun `gated apps open only 12 25 to 12 50, every day`() {
+    fun `gated apps open only 12 45 to 12 55, every day`() {
         assertNull(watchWallVerdict(inputs()))
         for (day in 16..22) {
-            assertNull(watchWallVerdict(inputs(at = LocalDateTime.of(2026, 11, day, 12, 25))))
-            assertNull(watchWallVerdict(inputs(at = LocalDateTime.of(2026, 11, day, 12, 49))))
-            assertEquals(WatchWall.SCHEDULE, watchWallVerdict(inputs(at = LocalDateTime.of(2026, 11, day, 12, 24))))
-            assertEquals(WatchWall.SCHEDULE, watchWallVerdict(inputs(at = LocalDateTime.of(2026, 11, day, 12, 50))))
+            assertNull(watchWallVerdict(inputs(at = LocalDateTime.of(2026, 11, day, 12, 45))))
+            assertNull(watchWallVerdict(inputs(at = LocalDateTime.of(2026, 11, day, 12, 54))))
+            assertEquals(WatchWall.SCHEDULE, watchWallVerdict(inputs(at = LocalDateTime.of(2026, 11, day, 12, 44))))
+            assertEquals(WatchWall.SCHEDULE, watchWallVerdict(inputs(at = LocalDateTime.of(2026, 11, day, 12, 55))))
             assertEquals(WatchWall.SCHEDULE, watchWallVerdict(inputs(at = LocalDateTime.of(2026, 11, day, 15, 0))))
         }
     }
@@ -90,18 +90,18 @@ class WatchWallsTest {
     fun `the phone's window in force applies on the watch, but only ever tighter`() {
         val default = WatchSchedule.DEFAULT_WINDOW
         assertEquals(default, WatchSchedule.window(-1, -1))
-        // A stricter window kept on the phone (12:25–12:40) holds here too.
-        val strict = WatchSchedule.window(12 * 60 + 25, 12 * 60 + 40)
-        assertEquals(WatchSchedule.Window(12 * 60 + 25, 12 * 60 + 40), strict)
+        // A stricter window kept on the phone (12:45–12:50) holds here too.
+        val strict = WatchSchedule.window(12 * 60 + 45, 12 * 60 + 50)
+        assertEquals(WatchSchedule.Window(12 * 60 + 45, 12 * 60 + 50), strict)
         assertEquals(
             WatchWall.SCHEDULE,
-            watchWallVerdict(inputs(at = LocalDateTime.of(2026, 11, 16, 12, 45)).copy(window = strict))
+            watchWallVerdict(inputs(at = LocalDateTime.of(2026, 11, 16, 12, 52)).copy(window = strict))
         )
-        assertTrue(wallDetail(WatchWall.SCHEDULE, mondayNoon, window = strict).contains("12:25–12:40"))
+        assertTrue(wallDetail(WatchWall.SCHEDULE, mondayNoon, window = strict).contains("12:45–12:50"))
         // Nothing the phone sends widens the fixed window, or empties it.
         assertEquals(default, WatchSchedule.window(8 * 60, 20 * 60))
         assertEquals(default, WatchSchedule.window(14 * 60, 16 * 60))
-        assertEquals(default, WatchSchedule.window(12 * 60 + 50, 12 * 60 + 25))
+        assertEquals(default, WatchSchedule.window(12 * 60 + 55, 12 * 60 + 45))
     }
 
     @Test
@@ -123,14 +123,14 @@ class WatchWallsTest {
 
     @Test
     fun `the next opening is named`() {
-        assertEquals(LocalDateTime.of(2026, 11, 16, 12, 25), WatchSchedule.nextOpening(mondayNoon))
-        assertEquals(LocalDateTime.of(2026, 11, 15, 12, 25), WatchSchedule.nextOpening(LocalDateTime.of(2026, 11, 14, 12, 50)))
+        assertEquals(LocalDateTime.of(2026, 11, 16, 12, 45), WatchSchedule.nextOpening(mondayNoon))
+        assertEquals(LocalDateTime.of(2026, 11, 15, 12, 45), WatchSchedule.nextOpening(LocalDateTime.of(2026, 11, 14, 12, 55)))
         assertEquals(inWindow, WatchSchedule.nextOpening(inWindow))
-        assertEquals("today at 12:25", openingText(LocalDateTime.of(2026, 11, 16, 12, 25), mondayNoon))
-        assertEquals("tomorrow at 12:25", openingText(LocalDateTime.of(2026, 11, 15, 12, 25), LocalDateTime.of(2026, 11, 14, 17, 0)))
-        assertEquals("Saturday at 12:25", openingText(LocalDateTime.of(2026, 11, 21, 12, 25), mondayNoon))
-        assertTrue(wallDetail(WatchWall.SCHEDULE, mondayNoon).contains("today at 12:25"))
-        assertTrue(wallDetail(WatchWall.SCHEDULE, mondayNoon).contains("every day 12:25–12:50"))
+        assertEquals("today at 12:45", openingText(LocalDateTime.of(2026, 11, 16, 12, 45), mondayNoon))
+        assertEquals("tomorrow at 12:45", openingText(LocalDateTime.of(2026, 11, 15, 12, 45), LocalDateTime.of(2026, 11, 14, 17, 0)))
+        assertEquals("Saturday at 12:45", openingText(LocalDateTime.of(2026, 11, 21, 12, 45), mondayNoon))
+        assertTrue(wallDetail(WatchWall.SCHEDULE, mondayNoon).contains("today at 12:45"))
+        assertTrue(wallDetail(WatchWall.SCHEDULE, mondayNoon).contains("every day 12:45–12:55"))
         assertTrue(wallDetail(WatchWall.FOCUS, inWindow).contains("after this"))
     }
 
@@ -196,31 +196,31 @@ class WatchWallsTest {
         assertEquals("2:00 PM", clockText(14, 0, is24Hour = false, Locale.ENGLISH))
         assertEquals("12:05 AM", clockText(0, 5, is24Hour = false, Locale.ENGLISH))
         assertEquals("12:00 PM", clockText(12, 0, is24Hour = false, Locale.ENGLISH))
-        val twelve = clockText(12, 25, is24Hour = false)
-        assertEquals("Saturday at $twelve", openingText(LocalDateTime.of(2026, 11, 21, 12, 25), mondayNoon, is24Hour = false))
+        val twelve = clockText(12, 45, is24Hour = false)
+        assertEquals("Saturday at $twelve", openingText(LocalDateTime.of(2026, 11, 21, 12, 45), mondayNoon, is24Hour = false))
         assertTrue(wallDetail(WatchWall.SCHEDULE, mondayNoon, is24Hour = false).contains("every day $twelve–"))
     }
 
     @Test
     fun `an exam wall names the first opening after the exam, not this window`() {
-        val saturdayInWindow = LocalDateTime.of(2026, 11, 21, 12, 30)
+        val saturdayInWindow = LocalDateTime.of(2026, 11, 21, 12, 50)
         val examEnd = LocalDateTime.of(2026, 11, 24, 0, 0)
         val detail = wallDetail(WatchWall.EXAM, saturdayInWindow, examEnd = examEnd)
         assertFalse(detail.contains("after this"))
-        assertTrue(detail, detail.contains("Tuesday at 12:25"))
+        assertTrue(detail, detail.contains("Tuesday at 12:45"))
         // Without an exam end the focus wall inside the window still says "after this".
         assertTrue(wallDetail(WatchWall.FOCUS, saturdayInWindow).contains("after this"))
         // Given a believed exam end, any wall names the opening after the exam.
         val eve = LocalDateTime.of(2026, 11, 16, 17, 0)
         val scheduleDetail = wallDetail(WatchWall.SCHEDULE, eve, examEnd = examEnd)
-        assertTrue(scheduleDetail, scheduleDetail.contains("Tuesday 24 November at 12:25"))
+        assertTrue(scheduleDetail, scheduleDetail.contains("Tuesday 24 November at 12:45"))
         // An end past what the verdict believes (60 days) moves nothing.
         val stale = wallDetail(WatchWall.SCHEDULE, eve, examEnd = eve.plusDays(90))
         assertFalse(stale, stale.contains("next open"))
         // With no exam end known, tomorrow is not promised (an exam week may begin at midnight).
         val evening = wallDetail(WatchWall.FOCUS, eve)
         assertFalse(evening, evening.contains("next open"))
-        assertTrue(wallDetail(WatchWall.SCHEDULE, eve).contains("every day 12:25–12:50"))
+        assertTrue(wallDetail(WatchWall.SCHEDULE, eve).contains("every day 12:45–12:55"))
     }
 
     @Test

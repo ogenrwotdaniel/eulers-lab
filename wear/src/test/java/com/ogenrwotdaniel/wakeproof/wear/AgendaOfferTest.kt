@@ -87,7 +87,8 @@ class AgendaOfferTest {
     fun `a watch session refuses with the session's end, not the block's`() {
         val watch = WatchTimer.startExact(60, null, now - 5 * min)
         val expected = WatchSessionBeacon.sessionEndsAt(watch, now)
-        assertEquals(now + 55 * min, expected)
+        // 25 + 5 + 25: the hour's last break is never run.
+        assertEquals(now + 50 * min, expected)
         assertEquals(
             AgendaOffer.Refused(AgendaRefusal.WatchSession(expected)),
             AgendaOffers.offer(lecture, watch, phone(), now)

@@ -198,31 +198,14 @@ class WatchTimerTest {
     private fun assertNotNullBlock(a: Advance) = assertEquals(25, a.completed?.minutes)
 
     @Test
-    fun `three hours is six fixed pomodoros with the long break after the third`() {
-        // Phone lengths of 50/10/30 must not stretch the preset.
-        var s = WatchTimer.start(WatchDurations(50, 10, 30), null, t0, WatchSession.THREE_HOURS)
-        assertEquals(6, s.targetFocusBlocks)
-        assertEquals(WatchDurations(25, 5, 15), s.durations)
-        val phases = mutableListOf<WatchPhase>()
-        var finished = false
-        var now = t0
-        while (!finished) {
-            now = s.phaseEndsAt
-            val a = WatchTimer.advance(s, now, utc, ::nextId)
-            finished = a.sessionFinished
-            s = a.state
-            if (!finished) phases += s.phase
-        }
-        // Breaks after blocks 1..5; only the third is long, none after the sixth.
-        assertEquals(
-            listOf(
-                WatchPhase.SHORT_BREAK, WatchPhase.FOCUS, WatchPhase.SHORT_BREAK, WatchPhase.FOCUS,
-                WatchPhase.LONG_BREAK, WatchPhase.FOCUS, WatchPhase.SHORT_BREAK, WatchPhase.FOCUS,
-                WatchPhase.SHORT_BREAK, WatchPhase.FOCUS
-            ),
-            phases
-        )
-        assertEquals(t0 + 185 * minute, now)
+    fun `the reading preset is one 30-minute block whatever the phone's lengths`() {
+        var s = WatchTimer.start(WatchDurations(50, 10, 30), null, t0, WatchSession.READING)
+        assertEquals(1, s.targetFocusBlocks)
+        assertEquals(30, s.durations.focusMinutes)
+        val a = WatchTimer.advance(s, s.phaseEndsAt, utc, ::nextId)
+        assertTrue(a.sessionFinished)
+        assertEquals(t0 + 30 * minute, s.phaseEndsAt)
+        assertEquals(30, a.completed?.minutes)
     }
 
     @Test

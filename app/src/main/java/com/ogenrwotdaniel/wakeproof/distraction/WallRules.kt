@@ -30,7 +30,7 @@ enum class WallRule(val key: String, val default: Int) {
     /**
      * Minute of the day the bedtime wall starts. It lasts until
      * [BEDTIME_END_MINUTES] (16:00 to 08:20 since 2026-11-14; the daily
-     * 12:25–12:50 window lies wholly outside it).
+     * 12:45–12:55 window lies wholly outside it).
      */
     BEDTIME_START_MINUTES("bedtime_start_minutes", 16 * 60),
 
@@ -39,14 +39,15 @@ enum class WallRule(val key: String, val default: Int) {
 
     /**
      * Minute of the day the gated apps' open window starts, every day. Covers
-     * social, video, messaging, the Google app, Play Store and browsers.
-     * 12:25–12:50 daily since 2026-11-16 (user's choice; Saturday and Sunday
-     * 14:00–16:00 before).
+     * social, video, messaging, the Google app and browsers. 12:45–12:55 daily
+     * since 2026-11-20 (the user: "make it 10 minutes instead since I need to
+     * squeeze in lunch reading time"; 12:25–12:50 from 2026-11-16, Saturday and
+     * Sunday 14:00–16:00 before).
      */
-    OPEN_WINDOW_START_MINUTES("open_window_start_minutes", 12 * 60 + 25),
+    OPEN_WINDOW_START_MINUTES("open_window_start_minutes", 12 * 60 + 45),
 
     /** Minute of the day the open window closes (exclusive). */
-    OPEN_WINDOW_END_MINUTES("open_window_end_minutes", 12 * 60 + 50);
+    OPEN_WINDOW_END_MINUTES("open_window_end_minutes", 12 * 60 + 55);
 
     /**
      * Pure: what this rule is in force at, given what a device [stored] while
@@ -108,7 +109,7 @@ class WallRulesRepository @Inject constructor(@ApplicationContext private val co
 /**
  * Pure: the rules in force given what was [stored] per rule. Stored values
  * that no longer leave any minute open (a morning window from before the
- * daily 12:25–12:50 window, or an old bedtime at or before 12:25) fall back to
+ * daily window, or an old bedtime at or before its start) fall back to
  * fixed values, resetting as little as reopens a minute (bedtime, then window,
  * then both): with nothing left to edit, they would otherwise shut gated apps
  * for good.
@@ -171,7 +172,7 @@ fun outsideOpenWindow(minuteOfDay: Int, startMinutes: Int, endMinutes: Int): Boo
 /**
  * Pure: when an app whose daily cap is spent can actually be used again after
  * today. Null means midnight tonight (ordinary countdown); otherwise
- * `"tomorrow at 12:25"`. An empty window (`endMinutes <= startMinutes` with a
+ * `"tomorrow at 12:45"`. An empty window (`endMinutes <= startMinutes` with a
  * non-negative start) returns null rather than promising an opening that will
  * not happen.
  */

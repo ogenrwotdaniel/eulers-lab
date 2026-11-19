@@ -24,11 +24,11 @@ private val Context.settingsDataStore: DataStore<Preferences> by preferencesData
 const val MIN_PUSHUP_TARGET = 5
 
 /**
- * Most pushups ANY alarm asks for — the user's cap, 2026-11-04. A stored value
- * above it (30 was saved before the cap) reads as this, so no screen, locked
- * or not, can ask for more.
+ * Most pushups ANY alarm asks for, and what the locked 04:00 alarm asks for:
+ * 30 since 2026-11-20 (the user: "increase morning pushups to 30"; 10 from
+ * 2026-11-04). A stored value above it reads as this.
  */
-const val MAX_PUSHUP_TARGET = 10
+const val MAX_PUSHUP_TARGET = 30
 
 /** User-tunable settings (DataStore-backed). */
 data class WakeProofSettings(

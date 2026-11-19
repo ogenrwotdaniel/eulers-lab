@@ -44,20 +44,21 @@ class PhoneAlarmRingService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
-        val tone = toneUri(this)
+        val gentle = intent?.getBooleanExtra(EXTRA_GENTLE, false) == true
+        val tone = if (gentle) chimeUri(this) else toneUri(this)
         val notification = PhoneAlarmMirror.notification(this, intent?.getStringExtra(EXTRA_TEXT).orEmpty())
         if (tone == null || notification == null) {
             stopSelf()
             return START_NOT_STICKY
         }
         startForeground(PhoneAlarmMirror.NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
-        if (player == null) play(tone)
+        if (player == null) play(tone, gentle)
         handler.removeCallbacks(timeout)
         handler.postDelayed(timeout, PHONE_ALARM_BUZZ_MILLIS)
         return START_NOT_STICKY
     }
 
-    private fun play(tone: Uri) {
+    private fun play(tone: Uri, gentle: Boolean = false) {
         val mp = MediaPlayer()
         val ok = runCatching {
             mp.setAudioAttributes(
@@ -67,15 +68,23 @@ class PhoneAlarmRingService : Service() {
                     .build()
             )
             mp.setDataSource(this, tone)
-            mp.isLooping = true
-            mp.setOnPreparedListener { it.start() }
+            if (gentle) {
+                // A bell every few seconds at half volume, as on the phone.
+                mp.setOnCompletionListener { done ->
+                    handler.postDelayed({ runCatching { done.start() } }, GENTLE_GAP_MILLIS)
+                }
+                mp.setOnPreparedListener { it.setVolume(GENTLE_VOLUME, GENTLE_VOLUME); it.start() }
+            } else {
+                mp.isLooping = true
+                mp.setOnPreparedListener { it.start() }
+            }
             mp.prepareAsync()
         }.onFailure { Log.w(TAG, "could not play the alarm song", it) }.isSuccess
         if (ok) player = mp else mp.release()
     }
 
     override fun onDestroy() {
-        handler.removeCallbacks(timeout)
+        handler.removeCallbacksAndMessages(null)
         runCatching { player?.release() }
         player = null
         super.onDestroy()
@@ -88,6 +97,7 @@ class PhoneAlarmRingService : Service() {
                 context.startForegroundService(
                     Intent(context, PhoneAlarmRingService::class.java)
                         .putExtra(EXTRA_TEXT, intent.getStringExtra(EXTRA_TEXT))
+                        .putExtra(EXTRA_GENTLE, intent.getBooleanExtra(EXTRA_GENTLE, false))
                 )
             }.onFailure { Log.w(TAG, "alarm song refused even from an exact alarm", it) }
         }
@@ -97,6 +107,13 @@ class PhoneAlarmRingService : Service() {
         private const val TAG = "PhoneAlarmRing"
         private const val ACTION_STOP = "com.ogenrwotdaniel.wakeproof.wear.STOP_PHONE_ALARM_SONG"
         private const val EXTRA_TEXT = "text"
+        private const val EXTRA_GENTLE = "gentle"
+        private const val GENTLE_VOLUME = 0.5f
+        private const val GENTLE_GAP_MILLIS = 3_000L
+
+        /** The soft focus chime, a copy of the phone's, for the reading alarm. */
+        fun chimeUri(context: Context): Uri =
+            Uri.parse("android.resource://${context.packageName}/${R.raw.focus_chime}")
         private const val TONE_NAME = "locked_alarm"
 
         fun toneUri(context: Context): Uri? {
@@ -105,15 +122,16 @@ class PhoneAlarmRingService : Service() {
             return if (id == 0) null else Uri.parse("android.resource://${context.packageName}/$id")
         }
 
-        fun start(context: Context, text: String) {
-            if (toneUri(context) == null) return
-            val intent = Intent(context, PhoneAlarmRingService::class.java).putExtra(EXTRA_TEXT, text)
+        fun start(context: Context, text: String, gentle: Boolean = false) {
+            if (!gentle && toneUri(context) == null) return
+            val intent = Intent(context, PhoneAlarmRingService::class.java)
+                .putExtra(EXTRA_TEXT, text).putExtra(EXTRA_GENTLE, gentle)
             val direct = runCatching { context.startForegroundService(intent) }.isSuccess
             if (direct) return
             runCatching {
                 val pending = PendingIntent.getBroadcast(
                     context, 0,
-                    Intent(context, StartReceiver::class.java).putExtra(EXTRA_TEXT, text),
+                    Intent(context, StartReceiver::class.java).putExtra(EXTRA_TEXT, text).putExtra(EXTRA_GENTLE, gentle),
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
                 context.getSystemService(AlarmManager::class.java).setExactAndAllowWhileIdle(

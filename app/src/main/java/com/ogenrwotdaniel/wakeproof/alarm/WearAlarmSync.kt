@@ -28,6 +28,8 @@ object WearAlarmSync {
     const val KEY_STRICT = "a_strict"
     const val KEY_REPS = "a_reps"
     const val KEY_STARTED_AT = "a_started_at"
+    /** The reading alarm (2026-11-20): the watch chimes softly instead of its alarm song. */
+    const val KEY_GENTLE = "a_gentle"
 
     const val SCHEDULE_PATH = "/wakeproof/alarm_schedule"
     const val KEY_SCHEDULE_MINUTES = "s_minutes"
@@ -46,11 +48,12 @@ object WearAlarmSync {
         }
     }
 
-    fun push(context: Context, ringing: Boolean, strict: Boolean) {
+    fun push(context: Context, ringing: Boolean, strict: Boolean, gentle: Boolean = false) {
         runCatching {
             val request = PutDataMapRequest.create(PATH).apply {
                 dataMap.putBoolean(KEY_RINGING, ringing)
                 dataMap.putBoolean(KEY_STRICT, strict)
+                dataMap.putBoolean(KEY_GENTLE, gentle)
                 dataMap.putInt(KEY_REPS, StrictAlarm.REPS)
                 dataMap.putLong(KEY_STARTED_AT, System.currentTimeMillis())
             }.asPutDataRequest().setUrgent()

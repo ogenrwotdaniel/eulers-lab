@@ -58,11 +58,14 @@ class StatsTileService : TileService() {
             stats, FocusSessionOutbox.pending(context), LocalDate.now(zone).toEpochDay(), zone
         )
         val timer = WatchTimerEngine.state(context)
+        // The phone's session, when the watch runs none of its own.
+        val phone = if (timer.active) null
+        else TimerSnapshot.read(context)?.takeIf { it.liveAt(System.currentTimeMillis()) }
         TileBuilders.Tile.Builder()
             .setResourcesVersion(RESOURCES_VERSION)
             .setFreshnessIntervalMillis(REFRESH_MS)
             .setTileTimeline(
-                TimelineBuilders.Timeline.fromLayoutElement(layout(stats, today, timer))
+                TimelineBuilders.Timeline.fromLayoutElement(layout(stats, today, timer, phone))
             )
             .build()
     }
@@ -81,12 +84,29 @@ class StatsTileService : TileService() {
     private fun layout(
         stats: WearStats,
         today: WatchFocusToday,
-        timer: WatchTimerState
+        timer: WatchTimerState,
+        phone: TimerSnapshot?
     ): LayoutElementBuilders.LayoutElement {
         val column = LayoutElementBuilders.Column.Builder()
             .setHorizontalAlignment(HORIZONTAL_ALIGN_CENTER)
+        // Named on every state (2026-11-20): during a session the tile showed only figures.
+        column.addContent(text("Euler's Lab", Typography.TYPOGRAPHY_CAPTION2, COLOR_MUTED))
+        column.addContent(spacer())
 
-        if (timer.active) {
+        if (phone != null) {
+            column.addContent(text(phone.phase.ifBlank { "Focus" }, Typography.TYPOGRAPHY_TITLE2, COLOR_STREAK))
+            val detail = if (phone.running && phone.finishAtMillis > 0L) {
+                val next = if (phone.phase.equals("Focus", ignoreCase = true)) "Break" else "Next"
+                "$next at ${DateFormat.getTimeFormat(this).format(Date(phone.finishAtMillis))}"
+            } else {
+                "On your phone"
+            }
+            column.addContent(text(detail, Typography.TYPOGRAPHY_BODY1, COLOR_TEXT))
+            column.addContent(spacer())
+            column.addContent(
+                text("Focus today ${today.minutes}m", Typography.TYPOGRAPHY_CAPTION1, COLOR_MUTED)
+            )
+        } else if (timer.active) {
             column.addContent(text(timer.phase.label, Typography.TYPOGRAPHY_TITLE2, COLOR_STREAK))
             val next = if (timer.phase == WatchPhase.FOCUS) "Break" else "Focus"
             val detail = if (timer.running) {

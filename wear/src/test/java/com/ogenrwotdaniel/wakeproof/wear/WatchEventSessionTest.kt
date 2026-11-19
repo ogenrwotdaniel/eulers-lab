@@ -25,9 +25,9 @@ class WatchEventSessionTest {
      * this one is a hand-kept copy of: change either and one side fails.
      */
     private val sharedVectors = listOf(
-        3 to (1 to 10), 10 to (1 to 10), 15 to (1 to 15), 25 to (1 to 25), 34 to (1 to 34),
-        35 to (1 to 35), 40 to (2 to 10), 50 to (2 to 20), 55 to (2 to 25), 62 to (2 to 32),
-        85 to (3 to 25), 90 to (3 to 30), 120 to (4 to 30), 185 to (6 to 35)
+        3 to (1 to 10), 10 to (1 to 10), 15 to (1 to 15), 25 to (1 to 25), 28 to (1 to 25),
+        34 to (1 to 25), 35 to (2 to 5), 40 to (2 to 10), 50 to (2 to 20), 55 to (2 to 25),
+        62 to (2 to 25), 85 to (3 to 25), 90 to (3 to 25), 120 to (4 to 25), 185 to (7 to 5)
     )
 
     @Test
@@ -39,11 +39,12 @@ class WatchEventSessionTest {
     }
 
     @Test
-    fun `every length from ten minutes to five hours comes out exact`() {
+    fun `every length from ten minutes to five hours ends on time or a few minutes early, no block over 25`() {
         for (total in WatchTimer.MIN_EXACT_SESSION_MINUTES..300) {
             val plan = WatchTimer.exactSessionPlan(total)
-            assertEquals("total $total", total, (plan.focusBlocks - 1) * 30 + plan.lastFocusMinutes)
-            assertTrue("total $total", plan.lastFocusMinutes >= WatchTimer.MIN_EXACT_SESSION_MINUTES)
+            val length = (plan.focusBlocks - 1) * 30 + plan.lastFocusMinutes
+            assertTrue("total $total ran $length", length <= total && total - length <= 9)
+            assertTrue("total $total", plan.lastFocusMinutes in WatchTimer.MIN_EXACT_LAST_BLOCK_MINUTES..25)
         }
     }
 
@@ -71,22 +72,22 @@ class WatchEventSessionTest {
     }
 
     @Test
-    fun `an hour and two minutes runs 25, a break, then a stretched 32`() {
+    fun `an hour and two minutes runs 25, a break, then 25, never a 32`() {
         val start = WatchTimer.startExact(62, "Calculus", t0)
         assertEquals(t0 + 25 * minute, start.phaseEndsAt)
-        assertEquals(t0 + 62 * minute, WatchSessionBeacon.sessionEndsAt(start, t0))
+        assertEquals(t0 + 55 * minute, WatchSessionBeacon.sessionEndsAt(start, t0))
         val (end, blocks, phases) = runToEnd(start)
-        assertEquals(t0 + 62 * minute, end)
-        assertEquals(listOf(25, 32), blocks.map { it.minutes })
+        assertEquals(t0 + 55 * minute, end)
+        assertEquals(listOf(25, 25), blocks.map { it.minutes })
         assertEquals(listOf(WatchPhase.FOCUS, WatchPhase.SHORT_BREAK, WatchPhase.FOCUS), phases)
-        assertEquals(57, start.focusMinutesThrough(2))
+        assertEquals(50, start.focusMinutesThrough(2))
     }
 
     @Test
     fun `an exact session never takes a long break`() {
         val (end, blocks, phases) = runToEnd(WatchTimer.startExact(185, null, t0))
         assertEquals(t0 + 185 * minute, end)
-        assertEquals(listOf(25, 25, 25, 25, 25, 35), blocks.map { it.minutes })
+        assertEquals(listOf(25, 25, 25, 25, 25, 25, 5), blocks.map { it.minutes })
         assertFalse(WatchPhase.LONG_BREAK in phases)
     }
 
@@ -129,10 +130,10 @@ class WatchEventSessionTest {
     @Test
     fun `lastFocusSeconds survives the store`() {
         val prefs = FakePrefs()
-        val state = WatchTimer.startExact(62, "Physics", t0)
+        val state = WatchTimer.startExact(50, "Physics", t0)
         WatchTimerStore.write(prefs, state)
         assertEquals(state, WatchTimerStore.read(prefs))
-        assertEquals(32 * 60, WatchTimerStore.read(prefs).lastFocusSeconds)
+        assertEquals(20 * 60, WatchTimerStore.read(prefs).lastFocusSeconds)
     }
 
     @Test

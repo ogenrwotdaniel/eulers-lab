@@ -21,7 +21,7 @@ object WatchGate {
     /** Matches `AppGate.GOOGLE_APP` in `:app`. */
     const val GOOGLE_APP = "com.google.android.googlequicksearchbox"
 
-    /** Matches `AppGate.PLAY_STORE` in `:app`. */
+    /** Matches `AppGate.PLAY_STORE` in `:app`; not gated since 2026-11-20, as on the phone. */
     const val PLAY_STORE = "com.android.vending"
 
     /**
@@ -47,8 +47,6 @@ object WatchGate {
         "com.google.android.apps.youtube.music", "com.google.android.apps.youtube.kids",
         "com.samsung.android.app.spage", "com.samsung.android.tvplus",
         "net.daum.android.daum", "com.nhn.android.search",
-        // The store itself: a new feed is one install away.
-        PLAY_STORE,
         // Alternative clients
         "org.schabi.newpipe", "app.revanced.android.youtube", "app.rvx.android.youtube",
         "xyz.blueskyweb.app", "org.joinmastodon.android", "ml.docilealligator.infinityforreddit"
@@ -136,16 +134,16 @@ object WatchGate {
 
 /**
  * COPY of the phone's fixed schedule (`WallRules.kt` in `:app`): gated apps open only
- * 12:25–12:50, every day (since 2026-11-16). The phone's bedtime wall (16:00–08:20) and night
+ * 12:45–12:55, every day (since 2026-11-20; 12:25–12:50 from 2026-11-16). The phone's bedtime wall (16:00–08:20) and night
  * wall (18:00–08:00 on the phone) lie wholly outside that window, so on the watch
  * they need no rule of their own.
  */
 object WatchSchedule {
     /** COPY of `WallRule.OPEN_WINDOW_START_MINUTES.default`. */
-    const val OPEN_WINDOW_START_MINUTES = 12 * 60 + 25
+    const val OPEN_WINDOW_START_MINUTES = 12 * 60 + 45
 
     /** COPY of `WallRule.OPEN_WINDOW_END_MINUTES.default`. */
-    const val OPEN_WINDOW_END_MINUTES = 12 * 60 + 50
+    const val OPEN_WINDOW_END_MINUTES = 12 * 60 + 55
 
     /** COPY of `WallRule.BEDTIME_START_MINUTES.default`; kept to show it lies past the window. */
     const val BEDTIME_START_MINUTES = 16 * 60
@@ -190,7 +188,7 @@ enum class WatchWall(val title: String) {
     SUMMARY("Session summary"),
     /** An exam week the phone holds. */
     EXAM("Exam week"),
-    /** Outside the daily 12:25–12:50 window. */
+    /** Outside the daily 12:45–12:55 window. */
     SCHEDULE("Gated apps are shut")
 }
 
@@ -269,7 +267,7 @@ fun clockIsAutomatic(autoTime: Int, clockworkAutoTime: Int): Boolean = when (clo
 fun clockText(hour: Int, minute: Int, is24Hour: Boolean, locale: Locale = Locale.getDefault()): String =
     DateTimeFormatter.ofPattern(if (is24Hour) "HH:mm" else "h:mm a", locale).format(LocalTime.of(hour, minute))
 
-/** Pure: "every day 12:25–12:50" in the watch's clock style. */
+/** Pure: "every day 12:45–12:55" in the watch's clock style. */
 fun openWindowText(is24Hour: Boolean, window: WatchSchedule.Window = WatchSchedule.DEFAULT_WINDOW): String {
     val start = window.start
     val end = window.end
@@ -309,7 +307,7 @@ fun wallDetail(
     return "$why$next"
 }
 
-/** Pure: "today at 12:25", "tomorrow at 12:25", "Saturday at 12:25" or "Tuesday 24 November at 12:25". */
+/** Pure: "today at 12:45", "tomorrow at 12:45", "Saturday at 12:45" or "Tuesday 24 November at 12:45". */
 fun openingText(opening: LocalDateTime, localNow: LocalDateTime, is24Hour: Boolean = true): String {
     val days = opening.toLocalDate().toEpochDay() - localNow.toLocalDate().toEpochDay()
     val time = clockText(opening.hour, opening.minute, is24Hour)

@@ -33,9 +33,12 @@ class ExamShutUntilTest {
         val watch = File("../wear/src/main/java/com/ogenrwotdaniel/wakeproof/wear/walls/WatchWalls.kt")
         org.junit.Assume.assumeTrue("watch source not beside the phone module", watch.exists())
         val source = watch.readText()
-        val named = AppGate.KNOWN_GATED_PACKAGES + AppGate.KNOWN_BROWSERS - AppGate.GOOGLE_APP - AppGate.PLAY_STORE
+        val named = AppGate.KNOWN_GATED_PACKAGES + AppGate.KNOWN_BROWSERS - AppGate.GOOGLE_APP
         for (pkg in named) assertTrue("$pkg missing on the watch", "\"$pkg\"" in source)
-        assertTrue(AppGate.GOOGLE_APP in source && AppGate.PLAY_STORE in source)
+        assertTrue(AppGate.GOOGLE_APP in source)
+        // The Play Store is open on both since 2026-11-20.
+        assertTrue(AppGate.PLAY_STORE !in AppGate.KNOWN_GATED_PACKAGES)
+        assertTrue("PLAY_STORE,\n" !in source)
     }
 
     /** The watch's schedule is a hand copy too; a window change made on one side only would pass both modules' tests. */

@@ -74,7 +74,7 @@ import java.time.LocalTime
  *   [BlockedActivity] is thrown in front of it until midnight (or next open
  *   window for gated apps). No override.
  * * The [WallRules] in front of gated apps ([AppGate]): open only inside the
- *   daily 12:25–12:50 window with no countdown wait or separate daily budget, and shut at bedtime.
+ *   daily 12:45–12:55 window with no countdown wait or separate daily budget, and shut at bedtime.
  *
  * Losing either grant ends enforcement, so it is announced loudly and repeatedly
  * ([announceWallDown], [sync]) and, mid-session, costs the block's tree.
@@ -239,7 +239,7 @@ class AppBlockService : Service() {
 
     /**
      * The local clock cannot be believed ([clockUntrusted]). Every wall reads it,
-     * so a hand-set one could put the phone inside the daily 12:25-12:50 window, or outside the
+     * so a hand-set one could put the phone inside the daily 12:45-12:55 window, or outside the
      * night, or past a session's end, at will.
      */
     @Volatile private var clockDoubted = false
@@ -1143,7 +1143,7 @@ class AppBlockService : Service() {
         return true
     }
 
-    /** Next opening phrase after today for [current] if gated (`"tomorrow at 12:25"`). */
+    /** Next opening phrase after today for [current] if gated (`"tomorrow at 12:45"`). */
     private fun nextOpenFor(current: String): String? {
         // Exam week shuts gated apps all day until the exam is over.
         // Today's, or the one starting at midnight: tomorrow's window is then the exam's.

@@ -189,7 +189,7 @@ object TimerNotifier {
         val phase = snapshot.phase.ifBlank { "Focus" }
         val status = if (snapshot.running) {
             Status.Builder()
-                .addTemplate("$phase #timer#")
+                .addTemplate("$phase · #timer#")
                 .addPart("timer", Status.TimerPart(snapshot.finishAtMillis))
                 .build()
         } else {
@@ -206,7 +206,10 @@ object TimerNotifier {
             .setContentText(if (snapshot.running) phase else "$phase (paused)")
             .setOngoing(true)
             .setCategory(NotificationCompat.CATEGORY_STOPWATCH)
+        // Titled: without it the watch's ongoing chip showed only the bare
+        // countdown during a phone session, never the app's name (2026-11-20).
         OngoingActivity.Builder(context, NOTIFICATION_ID, builder)
+            .setTitle("Euler's Lab")
             .setStaticIcon(R.drawable.ic_launcher_foreground)
             .setTouchIntent(touchIntent)
             .setStatus(status)

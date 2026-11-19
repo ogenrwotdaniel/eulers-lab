@@ -16,8 +16,14 @@ const val ARXIV_MATERIALS_URL = "https://arxiv.org/list/cond-mat.mtrl-sci/recent
 const val ARXIV_CV_URL = "https://arxiv.org/list/cs.CV/recent"
 const val ARXIV_DL_URL = "https://arxiv.org/list/cs.LG/recent"
 const val SCHOLAR_URL = "https://scholar.google.com/"
-const val MATERIALS_PROJECT_URL = "https://next-gen.materialsproject.org/"
-const val GRADESCOPE_URL = "https://www.gradescope.com/"
+/**
+ * Semantic Scholar (2026-11-20, replacing the Materials Project tab, which never
+ * loaded in the study browser): covers journals and preprints across all five
+ * research areas, with one-line summaries and citations both ways, and no feed.
+ */
+const val SEMANTIC_SCHOLAR_URL = "https://www.semanticscholar.org/"
+/** UNIST's portal (2026-11-20, replacing Gradescope at the user's request). */
+const val UNIST_PORTAL_URL = "https://portal.unist.ac.kr/irj/portal"
 
 /** Quick-switch tabs shown at the top of [StudyBrowserActivity]. */
 val STUDY_QUICK_TABS = listOf(
@@ -26,8 +32,8 @@ val STUDY_QUICK_TABS = listOf(
     "arXiv: CV" to ARXIV_CV_URL,
     "arXiv: DL" to ARXIV_DL_URL,
     "Scholar" to SCHOLAR_URL,
-    "Materials Proj." to MATERIALS_PROJECT_URL,
-    "Gradescope" to GRADESCOPE_URL
+    "Semantic Scholar" to SEMANTIC_SCHOLAR_URL,
+    "UNIST Portal" to UNIST_PORTAL_URL
 )
 
 /**
@@ -88,7 +94,6 @@ val STUDY_HOST_SUFFIXES = listOf(
     "nist.gov",
     "paperswithcode.com",
     "huggingface.co",
-    "gradescope.com",
     "turnitin.com"
 )
 

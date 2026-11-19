@@ -26,12 +26,14 @@ class ExactSessionTest {
     }
 
     @Test
-    fun `a stub of a last block is folded into the one before`() {
-        // 25 + 5 + 25 + 5 + 2 would be silly; 25 + 5 + 32 is not.
+    fun `no block runs over 25 minutes, a stub is dropped instead`() {
+        // 25 + 5 + 25 + 5 + 2 would be silly, and 25 + 5 + 32 broke the cap: 25 + 5 + 25, ending 7 minutes early.
         val plan = exactSessionPlan(62)
         assertEquals(2, plan.focusBlocks)
-        assertEquals(32, plan.lastFocusMinutes)
-        assertEquals(62, lengthOf(plan))
+        assertEquals(25, plan.lastFocusMinutes)
+        assertEquals(55, lengthOf(plan))
+        // 35 minutes was one 35-minute block: now 25 + 5 + 5.
+        assertEquals(2 to 5, exactSessionPlan(35).let { it.focusBlocks to it.lastFocusMinutes })
     }
 
     @Test
@@ -41,11 +43,12 @@ class ExactSessionTest {
     }
 
     @Test
-    fun `every length from ten minutes to five hours comes out exact`() {
+    fun `every length from ten minutes to five hours ends on time or a few minutes early, no block over 25`() {
         for (total in MIN_EXACT_SESSION_MINUTES..300) {
             val plan = exactSessionPlan(total)
-            assertEquals("total $total", total, lengthOf(plan))
-            assert(plan.lastFocusMinutes >= MIN_EXACT_SESSION_MINUTES) { "total $total" }
+            val length = lengthOf(plan)
+            assert(length <= total && total - length <= 9) { "total $total ran $length" }
+            assert(plan.lastFocusMinutes in MIN_EXACT_LAST_BLOCK_MINUTES..EXACT_FOCUS_MINUTES) { "total $total" }
         }
     }
 
@@ -55,9 +58,9 @@ class ExactSessionTest {
      * of this one: change the rule and one side or the other fails.
      */
     private val sharedVectors = listOf(
-        3 to (1 to 10), 10 to (1 to 10), 15 to (1 to 15), 25 to (1 to 25), 34 to (1 to 34),
-        35 to (1 to 35), 40 to (2 to 10), 50 to (2 to 20), 55 to (2 to 25), 62 to (2 to 32),
-        85 to (3 to 25), 90 to (3 to 30), 120 to (4 to 30), 185 to (6 to 35)
+        3 to (1 to 10), 10 to (1 to 10), 15 to (1 to 15), 25 to (1 to 25), 28 to (1 to 25),
+        34 to (1 to 25), 35 to (2 to 5), 40 to (2 to 10), 50 to (2 to 20), 55 to (2 to 25),
+        62 to (2 to 25), 85 to (3 to 25), 90 to (3 to 25), 120 to (4 to 25), 185 to (7 to 5)
     )
 
     @Test

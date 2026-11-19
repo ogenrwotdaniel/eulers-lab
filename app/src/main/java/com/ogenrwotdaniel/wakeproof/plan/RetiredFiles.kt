@@ -5,13 +5,15 @@ import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/** What the removed day plan, evening review and top three left in the app's private storage. */
+/**
+ * What the removed day plan and evening review left in the app's private storage.
+ * Not `top_three.json` any more: tomorrow's top three came back on 2026-11-20 and
+ * uses that file again.
+ */
 internal fun retiredFiles(filesDir: File): List<File> = listOf(
     File(filesDir, "day_plans"),
     File(filesDir, "day_reviews.json"),
-    File(filesDir, "day_reviews.json.part"),
-    File(filesDir, "top_three.json"),
-    File(filesDir, "top_three.json.part")
+    File(filesDir, "day_reviews.json.part")
 )
 
 /**

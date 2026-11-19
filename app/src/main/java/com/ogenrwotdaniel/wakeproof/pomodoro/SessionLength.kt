@@ -36,8 +36,13 @@ fun focusBlocksForSession(
     return blocks.coerceAtLeast(1)
 }
 
-/** The three-hour preset, which runs on fixed lengths rather than the settings. */
-const val THREE_HOUR_SESSION_MINUTES = 180
+/**
+ * The 30-minute reading preset (2026-11-20, the user: "remove 3 hours focus
+ * session and replace it with 30 minutes version mostly targeting reading at
+ * lunch time"): one unbroken 30-minute focus block, whatever the length
+ * settings say. The 12:00 reading alarm starts it. The 3-hour preset is gone.
+ */
+const val READING_SESSION_MINUTES = 30
 
 /**
  * The length a start with no length asks for. Free-running sessions are gone:
@@ -57,7 +62,7 @@ data class SessionPlan(
     val longBreakEvery: Int,
     /**
      * The LAST focus block's length; the others run [focusMinutes]. Differs
-     * only in an [exactSessionPlan], which trims it so the session ends on the
+     * only in an [exactSessionPlan], which trims it (never past 25) so the session ends on the
      * minute asked for.
      */
     val lastFocusMinutes: Int = focusMinutes
@@ -66,12 +71,11 @@ data class SessionPlan(
 /**
  * Turns a chosen session length into a plan.
  *
- * The three-hour preset is the user's own recipe and deliberately ignores the
- * length settings: three pomodoros, a 15-minute long break, three more —
- * 6 × 25 min of focus with 5-minute breaks between, 3 h 05 m in all. Built on
- * the settings instead, 50-minute blocks would have made "3 h" nearly six.
- * Every other length runs the user's own blocks with the usual long break
- * every fourth, sized by [focusBlocksForSession].
+ * The 30-minute reading preset is a fixed recipe that ignores the length
+ * settings: one 30-minute block and nothing after it (at 25+5 the nearest
+ * whole session would have been a single 25-minute block). Every other length
+ * runs the user's own blocks with the usual long break every fourth, sized by
+ * [focusBlocksForSession].
  */
 fun sessionPlan(
     sessionMinutes: Int,
@@ -79,13 +83,14 @@ fun sessionPlan(
     shortBreakMinutes: Int,
     longBreakMinutes: Int
 ): SessionPlan {
-    if (sessionMinutes == THREE_HOUR_SESSION_MINUTES) {
+    if (sessionMinutes == READING_SESSION_MINUTES) {
+        // Break lengths are never run (one block), but stay sane for a follower's checks.
         return SessionPlan(
-            focusMinutes = 25,
+            focusMinutes = READING_SESSION_MINUTES,
             shortBreakMinutes = 5,
             longBreakMinutes = 15,
-            focusBlocks = 6,
-            longBreakEvery = 3
+            focusBlocks = 1,
+            longBreakEvery = 4
         )
     }
     val minutes = if (sessionMinutes > 0) sessionMinutes else DEFAULT_SESSION_MINUTES
@@ -108,25 +113,26 @@ const val EXACT_BREAK_MINUTES = 5
  */
 const val MIN_EXACT_SESSION_MINUTES = 10
 
+/** The shortest last block an event session keeps; a shorter remainder is dropped. */
+const val MIN_EXACT_LAST_BLOCK_MINUTES = 5
+
 /**
- * Pure: a session lasting EXACTLY [totalMinutes] (2026-11-01), for focusing
- * through a calendar event: 25-minute blocks with 5-minute breaks and no long
- * break, the last block trimmed (or, when trimming would leave a stub under
- * [MIN_EXACT_SESSION_MINUTES], stretched) so the whole thing ends on the
- * minute. 1 h 25 m is three full blocks; 1 h 02 m is 25 + 5 + 32, not
- * 25 + 5 + 25 + 5 + 2. Ends on a focus block like every session; never
- * shorter than the floor, so a caller below it still gets a sane plan.
+ * Pure: a session for focusing through a calendar event of [totalMinutes]
+ * (2026-11-01): 25-minute blocks with 5-minute breaks and no long break.
+ *
+ * No block ever runs over 25 minutes (2026-11-20, the user: "max focus time is
+ * 25 minutes followed by 5 minutes break; when I open focus from calendar
+ * events, some of them end up running over 30 minutes"). Until then the last
+ * block was stretched rather than leave a stub, so a 35-minute event was one
+ * 35-minute block and 1 h 02 m ended on a 32. Now the last block takes what is
+ * left, at most 25: 50 minutes is 25 + 5 + 20, 35 is 25 + 5 + 5. When what is
+ * left is under [MIN_EXACT_LAST_BLOCK_MINUTES], or falls in a break, the session
+ * ends a few minutes before the event (at most 9) rather than run a stub or a
+ * long block: 1 h 02 m is 25 + 5 + 25. Never shorter than the floor, so a
+ * caller below it still gets a sane plan.
  */
 fun exactSessionPlan(totalMinutes: Int): SessionPlan {
-    val total = totalMinutes.coerceAtLeast(MIN_EXACT_SESSION_MINUTES)
-    val cycle = EXACT_FOCUS_MINUTES + EXACT_BREAK_MINUTES
-    // n blocks take n × focus + (n − 1) × break = n × cycle − break.
-    var blocks = ((total + EXACT_BREAK_MINUTES + cycle - 1) / cycle).coerceAtLeast(1)
-    var last = total - (blocks - 1) * cycle
-    if (last < MIN_EXACT_SESSION_MINUTES && blocks > 1) {
-        blocks -= 1
-        last += cycle
-    }
+    val (blocks, last) = exactBlocks(totalMinutes)
     return SessionPlan(
         focusMinutes = EXACT_FOCUS_MINUTES,
         shortBreakMinutes = EXACT_BREAK_MINUTES,
@@ -137,6 +143,22 @@ fun exactSessionPlan(totalMinutes: Int): SessionPlan {
     )
 }
 
+/** Pure: (focus blocks, last block minutes) of [exactSessionPlan]. */
+internal fun exactBlocks(totalMinutes: Int): Pair<Int, Int> {
+    val total = totalMinutes.coerceAtLeast(MIN_EXACT_SESSION_MINUTES)
+    val cycle = EXACT_FOCUS_MINUTES + EXACT_BREAK_MINUTES
+    val full = total / cycle
+    val rest = total % cycle
+    return when {
+        // Ends on a whole block; its break is never run.
+        rest == 0 -> full to EXACT_FOCUS_MINUTES
+        // A stub after whole blocks is dropped.
+        rest < MIN_EXACT_LAST_BLOCK_MINUTES && full > 0 -> full to EXACT_FOCUS_MINUTES
+        // Capped: the event's end falls in the break after it.
+        else -> (full + 1) to minOf(rest, EXACT_FOCUS_MINUTES)
+    }
+}
+
 /**
  * Pure: how long focus block number [block] (1-based) runs in a session of
  * [targetFocusBlocks] — the last one [lastFocusSeconds], the rest
@@ -144,3 +166,18 @@ fun exactSessionPlan(totalMinutes: Int): SessionPlan {
  */
 fun focusSecondsForBlock(block: Int, targetFocusBlocks: Int, focusSeconds: Int, lastFocusSeconds: Int): Int =
     if (targetFocusBlocks > 0 && block >= targetFocusBlocks) lastFocusSeconds else focusSeconds
+
+/**
+ * Pure: whether a session of this shape owes the written summary. Only the
+ * 30 min option is spared (2026-11-20, the user: "for 30 minutes focus, skip
+ * the ten minutes summary ... put exception only for the 30 minutes option but
+ * anything >30 minutes, no exception"): ten minutes of writing after half an
+ * hour is a third as long again, and the lunch read has to leave time to eat.
+ * It is told by its shape, one unbroken 30-minute block, which only that preset
+ * makes (an event session's blocks stop at 25), so a joined copy of it, from
+ * the watch or the tablet, is spared too. Calendar-event sessions always owe it.
+ */
+fun sessionOwesSummary(targetFocusBlocks: Int, focusSeconds: Int, lastFocusSeconds: Int): Boolean {
+    val readingPreset = READING_SESSION_MINUTES * 60
+    return !(targetFocusBlocks == 1 && focusSeconds == readingPreset && lastFocusSeconds == readingPreset)
+}

@@ -68,8 +68,14 @@ fun AlarmRingingScreen(
                 text = formatAlarmTime(LocalContext.current, now.hour, now.minute),
                 style = MaterialTheme.typography.displayLarge
             )
+            // "Locked 20:50" is WakeProof's own label: the fixed alarms are named for what they ask.
             Text(
-                text = alarm?.label?.ifBlank { null } ?: "Alarm",
+                text = alarm?.label?.takeUnless { it.isBlank() || com.ogenrwotdaniel.wakeproof.alarm.isStrictLabel(it) }
+                    ?: when (alarm?.type) {
+                        AlarmType.SHUTDOWN -> "Tomorrow's top three"
+                        AlarmType.READING -> "Lunch reading"
+                        else -> "Alarm"
+                    },
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -77,6 +83,8 @@ fun AlarmRingingScreen(
             Text(
                 text = when (alarm?.type) {
                     AlarmType.REVIEW -> "Answer your due flashcards."
+                    AlarmType.SHUTDOWN -> "Ten minutes to bed. Write down the three things that matter most tomorrow."
+                    AlarmType.READING -> "Thirty minutes with a book or a paper before lunch."
                     AlarmType.PUSHUP -> "Do your pushups in front of the camera."
                     AlarmType.MATH -> "Solve a few sums. Works in the dark, no camera."
                     else -> "Complete your verification to silence the alarm."
@@ -90,11 +98,21 @@ fun AlarmRingingScreen(
                 onClick = { onStartVerification(alarm?.type ?: AlarmType.PUSHUP) },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Start verification", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    when (alarm?.type) {
+                        AlarmType.SHUTDOWN -> "Write them"
+                        AlarmType.READING -> "Start reading"
+                        else -> "Start verification"
+                    },
+                    style = MaterialTheme.typography.titleMedium
+                )
             }
             Spacer(Modifier.height(16.dp))
             Text(
-                text = "No dismiss button. Verification is the way out.",
+                text = when (alarm?.type) {
+                    AlarmType.SHUTDOWN -> "One line is enough to silence it."
+                    else -> "No dismiss button. Verification is the way out."
+                },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

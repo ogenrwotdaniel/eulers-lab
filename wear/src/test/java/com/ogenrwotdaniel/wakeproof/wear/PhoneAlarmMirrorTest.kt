@@ -29,4 +29,14 @@ class PhoneAlarmMirrorTest {
         assertTrue(total > PHONE_ALARM_BUZZ_MILLIS - 2_000L)
         assertEquals(0, pattern.size % 2)
     }
+
+    @Test
+    fun `the reading alarm taps lightly, and still ends on its own`() {
+        val gentle = phoneAlarmBuzzPattern(gentle = true)
+        assertTrue(gentle.sum() in (PHONE_ALARM_BUZZ_MILLIS - 2_000L)..PHONE_ALARM_BUZZ_MILLIS)
+        // Pulses are the odd entries; each is short.
+        assertTrue(gentle.filterIndexed { i, _ -> i % 2 == 1 }.all { it < 500L })
+        // The contract key matches the phone's WearAlarmSync.KEY_GENTLE.
+        assertEquals("a_gentle", PhoneAlarmContract.KEY_GENTLE)
+    }
 }

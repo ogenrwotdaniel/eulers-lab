@@ -28,7 +28,7 @@ import kotlinx.coroutines.withContext
  *
  * Since 2026-11-01 it asks [AppBlockService.walledNow] and follows EVERY wall —
  * a focus session (on any of the user's devices), a spent cap, the daily
- * 12:25–12:50 window, bedtime, and the night
+ * 12:45–12:55 window, bedtime, and the night
  * sleep wall — because a notification is a way to read an app the wall keeps
  * shut: the shade, the Edge panel, Edge lighting and an icon's long-press preview
  * all show it. With the blocker not running it falls back to [outsideOpenWindow]

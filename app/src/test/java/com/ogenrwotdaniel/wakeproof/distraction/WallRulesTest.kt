@@ -21,23 +21,32 @@ class WallRulesTest {
         assertEquals(16 * 60, bedtime.fixedOrStricter(RULE_OFF_MINUTES))
         assertEquals(14 * 60, bedtime.fixedOrStricter(14 * 60))
         // A bedtime stored before the window is read as the window's start (then reset by fixedRules).
-        assertEquals(12 * 60 + 25, bedtime.fixedOrStricter(11 * 60))
+        assertEquals(12 * 60 + 45, bedtime.fixedOrStricter(11 * 60))
         val start = WallRule.OPEN_WINDOW_START_MINUTES
-        assertEquals(12 * 60 + 25, start.fixedOrStricter(8 * 60 + 10))
-        assertEquals(12 * 60 + 25, start.fixedOrStricter(RULE_OFF_MINUTES))
-        assertEquals(12 * 60 + 30, start.fixedOrStricter(12 * 60 + 30))
+        assertEquals(12 * 60 + 45, start.fixedOrStricter(8 * 60 + 10))
+        assertEquals(12 * 60 + 45, start.fixedOrStricter(RULE_OFF_MINUTES))
+        assertEquals(12 * 60 + 48, start.fixedOrStricter(12 * 60 + 48))
         val end = WallRule.OPEN_WINDOW_END_MINUTES
-        assertEquals(12 * 60 + 50, end.fixedOrStricter(16 * 60))
-        assertEquals(12 * 60 + 40, end.fixedOrStricter(12 * 60 + 40))
+        assertEquals(12 * 60 + 55, end.fixedOrStricter(16 * 60))
+        assertEquals(12 * 60 + 50, end.fixedOrStricter(12 * 60 + 50))
         assertEquals(RULE_ON, WallRule.GATE_BROWSERS.fixedOrStricter(RULE_OFF))
     }
 
     @Test
     fun `a stored window the bedtime wall or new start now covers falls back to the fixed one`() {
         val rules = fixedRules { if (it == WallRule.OPEN_WINDOW_END_MINUTES) 8 * 60 + 50 else null }
-        assertEquals(12 * 60 + 25 to 12 * 60 + 50, gatedOpenWindow(rules))
-        val kept = fixedRules { if (it == WallRule.OPEN_WINDOW_END_MINUTES) 12 * 60 + 40 else null }
-        assertEquals(12 * 60 + 25 to 12 * 60 + 40, gatedOpenWindow(kept))
+        assertEquals(12 * 60 + 45 to 12 * 60 + 55, gatedOpenWindow(rules))
+        val kept = fixedRules { if (it == WallRule.OPEN_WINDOW_END_MINUTES) 12 * 60 + 50 else null }
+        assertEquals(12 * 60 + 45 to 12 * 60 + 50, gatedOpenWindow(kept))
+        // The 12:25–12:50 window an older build might have stored keeps only its overlap.
+        val old = fixedRules {
+            when (it) {
+                WallRule.OPEN_WINDOW_START_MINUTES -> 12 * 60 + 25
+                WallRule.OPEN_WINDOW_END_MINUTES -> 12 * 60 + 50
+                else -> null
+            }
+        }
+        assertEquals(12 * 60 + 45 to 12 * 60 + 50, gatedOpenWindow(old))
         // The old Saturday–Sunday 14:00–16:00 window stored on a device leaves no minute
         // of the new one open, so the fixed daily window comes back.
         val weekend = fixedRules {
@@ -47,58 +56,58 @@ class WallRulesTest {
                 else -> null
             }
         }
-        assertEquals(12 * 60 + 25 to 12 * 60 + 50, gatedOpenWindow(weekend))
+        assertEquals(12 * 60 + 45 to 12 * 60 + 55, gatedOpenWindow(weekend))
     }
 
     @Test
     fun `a stored bedtime that closes the whole window falls back with the window`() {
         // Kept as stricter (12:00 < 16:00), but it leaves no minute of the window open.
         val early = fixedRules { if (it == WallRule.BEDTIME_START_MINUTES) 12 * 60 else null }
-        assertEquals(12 * 60 + 25 to 12 * 60 + 50, gatedOpenWindow(early))
+        assertEquals(12 * 60 + 45 to 12 * 60 + 55, gatedOpenWindow(early))
         assertEquals(16 * 60, early.bedtimeStartMinutes)
         // One that still leaves part of the window open is the user's own tightening.
-        val partial = fixedRules { if (it == WallRule.BEDTIME_START_MINUTES) 12 * 60 + 40 else null }
-        assertEquals(12 * 60 + 25 to 12 * 60 + 40, gatedOpenWindow(partial))
+        val partial = fixedRules { if (it == WallRule.BEDTIME_START_MINUTES) 12 * 60 + 50 else null }
+        assertEquals(12 * 60 + 45 to 12 * 60 + 50, gatedOpenWindow(partial))
         // An empty stored window resets alone when the stored bedtime leaves the fixed one partly open.
         val both = fixedRules {
             when (it) {
                 WallRule.OPEN_WINDOW_START_MINUTES -> 6 * 60
                 WallRule.OPEN_WINDOW_END_MINUTES -> 8 * 60
-                WallRule.BEDTIME_START_MINUTES -> 12 * 60 + 40
+                WallRule.BEDTIME_START_MINUTES -> 12 * 60 + 50
                 else -> null
             }
         }
-        assertEquals(12 * 60 + 25 to 12 * 60 + 40, gatedOpenWindow(both))
+        assertEquals(12 * 60 + 45 to 12 * 60 + 50, gatedOpenWindow(both))
         // A stricter stored window survives when resetting the bedtime alone reopens it.
         val stricterWindow = fixedRules {
             when (it) {
-                WallRule.OPEN_WINDOW_START_MINUTES -> 12 * 60 + 30
-                WallRule.OPEN_WINDOW_END_MINUTES -> 12 * 60 + 45
+                WallRule.OPEN_WINDOW_START_MINUTES -> 12 * 60 + 48
+                WallRule.OPEN_WINDOW_END_MINUTES -> 12 * 60 + 52
                 WallRule.BEDTIME_START_MINUTES -> 12 * 60
                 else -> null
             }
         }
-        assertEquals(12 * 60 + 30 to 12 * 60 + 45, gatedOpenWindow(stricterWindow))
+        assertEquals(12 * 60 + 48 to 12 * 60 + 52, gatedOpenWindow(stricterWindow))
     }
 
     @Test
     fun `gated apps open for the whole daily window, which bedtime does not touch`() {
-        assertEquals(12 * 60 + 25 to 12 * 60 + 50, gatedOpenWindow(WallRules()))
+        assertEquals(12 * 60 + 45 to 12 * 60 + 55, gatedOpenWindow(WallRules()))
         // An earlier window that starts before BEDTIME_END_MINUTES waits for it.
         val early = WallRules(mapOf(WallRule.OPEN_WINDOW_START_MINUTES to 8 * 60))
-        assertEquals(8 * 60 + 20 to 12 * 60 + 50, gatedOpenWindow(early))
+        assertEquals(8 * 60 + 20 to 12 * 60 + 55, gatedOpenWindow(early))
         val noBedtime = WallRules(mapOf(WallRule.BEDTIME_START_MINUTES to RULE_OFF_MINUTES))
-        assertEquals(12 * 60 + 25 to 12 * 60 + 50, gatedOpenWindow(noBedtime))
+        assertEquals(12 * 60 + 45 to 12 * 60 + 55, gatedOpenWindow(noBedtime))
         assertNull(gatedOpenWindow(WallRules(mapOf(WallRule.OPEN_WINDOW_START_MINUTES to RULE_OFF_MINUTES))))
     }
 
     @Test
-    fun `defaults are a 16 00 bedtime and a daily 12 25 to 12 50 window with no shut days`() {
+    fun `defaults are a 16 00 bedtime and a daily 12 45 to 12 55 window with no shut days`() {
         val rules = WallRules()
         assertTrue(rules.gateBrowsers && rules.sessionDnd)
         assertEquals(16 * 60, rules.bedtimeStartMinutes)
-        assertEquals(12 * 60 + 25, rules.openWindowStartMinutes)
-        assertEquals(12 * 60 + 50, rules.openWindowEndMinutes)
+        assertEquals(12 * 60 + 45, rules.openWindowStartMinutes)
+        assertEquals(12 * 60 + 55, rules.openWindowEndMinutes)
     }
 
     @Test
@@ -133,14 +142,14 @@ class WallRulesTest {
     }
 
     @Test
-    fun `gated apps open 12 25 to 12 50, midday, every day`() {
+    fun `gated apps open 12 45 to 12 55, midday, every day`() {
         val rules = WallRules()
         val start = rules.openWindowStartMinutes
         val end = rules.openWindowEndMinutes
-        assertTrue(outsideOpenWindow(12 * 60 + 24, start, end))
-        assertFalse(outsideOpenWindow(12 * 60 + 25, start, end))
-        assertFalse(outsideOpenWindow(12 * 60 + 49, start, end))
-        assertTrue(outsideOpenWindow(12 * 60 + 50, start, end))
+        assertTrue(outsideOpenWindow(12 * 60 + 44, start, end))
+        assertFalse(outsideOpenWindow(12 * 60 + 45, start, end))
+        assertFalse(outsideOpenWindow(12 * 60 + 54, start, end))
+        assertTrue(outsideOpenWindow(12 * 60 + 55, start, end))
         // Midday, not just after midnight.
         assertTrue(outsideOpenWindow(0 * 60 + 30, start, end))
         assertTrue(outsideOpenWindow(15 * 60, start, end))
@@ -148,7 +157,7 @@ class WallRulesTest {
 
     @Test
     fun `nextOpenAfterToday is tomorrow at 12 25`() {
-        assertEquals("tomorrow at 12:25", nextOpenAfterToday(true, 12 * 60 + 25, 12 * 60 + 50, ::fmt))
+        assertEquals("tomorrow at 12:45", nextOpenAfterToday(true, 12 * 60 + 45, 12 * 60 + 55, ::fmt))
         assertNull(nextOpenAfterToday(false, 12 * 60 + 25, 12 * 60 + 50, ::fmt))
         assertNull(nextOpenAfterToday(true, RULE_OFF_MINUTES, 12 * 60 + 50, ::fmt))
         assertNull(nextOpenAfterToday(true, 12 * 60 + 50, 12 * 60 + 25, ::fmt))

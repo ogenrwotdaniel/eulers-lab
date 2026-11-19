@@ -63,7 +63,7 @@ data class WatchTimerState(
     /**
      * The LAST focus block's length; the others run the focus duration.
      * Differs only in an event session ([WatchTimer.startExact]), whose last
-     * block is trimmed or stretched so it ends with the event. Defaults to the
+     * block is trimmed so it ends with the event (never over 25). Defaults to the
      * focus length, which is what every state stored before it means.
      */
     val lastFocusSeconds: Int = durations.focusMinutes.coerceAtLeast(1) * 60,
@@ -151,15 +151,15 @@ data class PhoneSession(
  * The session lengths offered on the watch — the same four the phone offers.
  *
  * No free run, as on the phone (2026-10-27): a session has no pause and no stop
- * any more, so it must end by itself. [THREE_HOURS] replaced it and, like the
- * phone's, is a fixed recipe rather than a target: three 25-minute pomodoros,
- * a 15-minute break, three more — whatever the phone's length settings say.
+ * any more, so it must end by itself. [READING] (2026-11-20, replacing the
+ * 3-hour preset) is, like the phone's, a fixed recipe rather than a target:
+ * one unbroken 30-minute block, whatever the phone's length settings say.
  */
 enum class WatchSession(val label: String, val minutes: Int) {
+    READING("30 min", 30),
     ONE_HOUR("1 hour", 60),
     NINETY("1 h 30 min", 90),
-    TWO_HOURS("2 hours", 120),
-    THREE_HOURS("3 hours", 180)
+    TWO_HOURS("2 hours", 120)
 }
 
 /**
@@ -226,10 +226,8 @@ object WatchTimer {
     private val SESSION_ID = Regex("[A-Za-z0-9-]{8,64}")
     const val JOIN_MARGIN_MILLIS = 5_000L
 
-    /** The 3-hour recipe's lengths. A COPY of the phone's `sessionPlan` — keep in step by hand. */
-    val THREE_HOUR_DURATIONS = WatchDurations(25, 5, 15)
-    const val THREE_HOUR_BLOCKS = 6
-    const val THREE_HOUR_LONG_BREAK_EVERY = 3
+    /** The 30-minute reading recipe's lengths. A COPY of the phone's `sessionPlan` — keep in step by hand. */
+    val READING_DURATIONS = WatchDurations(30, 5, 15)
 
     /** Focus and break lengths of an exact (event) session. COPY of the phone's `EXACT_*`. */
     const val EXACT_FOCUS_MINUTES = 25
@@ -238,22 +236,26 @@ object WatchTimer {
     /** Shortest event session, and shortest last block. COPY of the phone's `MIN_EXACT_SESSION_MINUTES`. */
     const val MIN_EXACT_SESSION_MINUTES = 10
 
+    /** Shortest last block an event session keeps. COPY of the phone's `MIN_EXACT_LAST_BLOCK_MINUTES`. */
+    const val MIN_EXACT_LAST_BLOCK_MINUTES = 5
+
     /**
-     * A session lasting EXACTLY [totalMinutes]: 25 + 5 blocks, the last one
-     * trimmed — or, when trimming would leave a stub under
-     * [MIN_EXACT_SESSION_MINUTES], stretched — so it ends on the minute.
-     * A COPY of the phone's `exactSessionPlan`; keep the two in step by hand.
+     * An event session: 25 + 5 blocks, no block over 25 minutes (2026-11-20);
+     * the last takes what is left, and a remainder under
+     * [MIN_EXACT_LAST_BLOCK_MINUTES] or inside a break ends the session a few
+     * minutes early instead. A COPY of the phone's `exactSessionPlan`; keep the
+     * two in step by hand.
      */
     fun exactSessionPlan(totalMinutes: Int): WatchExactPlan {
         val total = totalMinutes.coerceAtLeast(MIN_EXACT_SESSION_MINUTES)
         val cycle = EXACT_FOCUS_MINUTES + EXACT_BREAK_MINUTES
-        var blocks = ((total + EXACT_BREAK_MINUTES + cycle - 1) / cycle).coerceAtLeast(1)
-        var last = total - (blocks - 1) * cycle
-        if (last < MIN_EXACT_SESSION_MINUTES && blocks > 1) {
-            blocks -= 1
-            last += cycle
+        val full = total / cycle
+        val rest = total % cycle
+        return when {
+            rest == 0 -> WatchExactPlan(full, EXACT_FOCUS_MINUTES)
+            rest < MIN_EXACT_LAST_BLOCK_MINUTES && full > 0 -> WatchExactPlan(full, EXACT_FOCUS_MINUTES)
+            else -> WatchExactPlan(full + 1, minOf(rest, EXACT_FOCUS_MINUTES))
         }
-        return WatchExactPlan(blocks, last)
     }
 
     /**
@@ -323,8 +325,8 @@ object WatchTimer {
         session: WatchSession = WatchSession.ONE_HOUR,
         sessionId: String = randomId()
     ): WatchTimerState {
-        val threeHours = session == WatchSession.THREE_HOURS
-        val used = if (threeHours) THREE_HOUR_DURATIONS else durations
+        val reading = session == WatchSession.READING
+        val used = if (reading) READING_DURATIONS else durations
         return WatchTimerState(
             active = true,
             running = true,
@@ -333,9 +335,9 @@ object WatchTimer {
             focusStartedAt = now,
             durations = used,
             subject = subject,
-            targetFocusBlocks = if (threeHours) THREE_HOUR_BLOCKS
+            targetFocusBlocks = if (reading) 1
             else focusBlocksForSession(session.minutes, used.focusMinutes, used.shortBreakMinutes),
-            longBreakEvery = if (threeHours) THREE_HOUR_LONG_BREAK_EVERY else FOCUS_BLOCKS_PER_LONG_BREAK,
+            longBreakEvery = FOCUS_BLOCKS_PER_LONG_BREAK,
             sessionId = sessionId
         )
     }

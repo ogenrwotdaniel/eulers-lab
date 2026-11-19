@@ -23,7 +23,8 @@ fun EventFocusDialog(
         title = { Text("Focus for ${eventFocusLabel(minutes)}?") },
         text = {
             Text(
-                "\"$title\" — a focus session that ends with the event. Once it starts it " +
+                "\"$title\" — 25-minute blocks with 5-minute breaks, ending with the event " +
+                    "or a few minutes before it. Once it starts it " +
                     "can't be paused or stopped, and everything off your study list is walled."
             )
         },

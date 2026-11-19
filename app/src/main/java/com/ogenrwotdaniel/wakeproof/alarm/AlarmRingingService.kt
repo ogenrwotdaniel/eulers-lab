@@ -114,11 +114,16 @@ class AlarmRingingService : Service() {
         ringStartedAt = SystemClock.elapsedRealtime()
         ringing = true
         strictRing = StrictAlarm.isStrictId(this, alarmId)
+        gentleRing = !strictRing && StrictAlarm.isGentleId(this, alarmId)
         // Every alarm rings the bundled song (user's choice, 2026-11-04), not
-        // only the locked ones; the phone's alarm sound if none is bundled.
-        startRingtone(StrictAlarm.toneUri(this))
-        // The watch buzzes too; it cannot dismiss, only the phone can.
-        WearAlarmSync.push(this, ringing = true, strict = strictRing)
+        // only the locked ones; the phone's alarm sound if none is bundled. The
+        // lunch reading and the evening's top three ring the soft focus chime
+        // instead (2026-11-20).
+        startRingtone(if (gentleRing) chimeUri() else StrictAlarm.toneUri(this))
+        // The watch buzzes too; it cannot dismiss, only the phone can. A gentle
+        // ring tells it to chime softly; the top three stays on the phone alone.
+        watchRing = !(gentleRing && StrictAlarm.isTopThreeId(this, alarmId))
+        if (watchRing) WearAlarmSync.push(this, ringing = true, strict = strictRing, gentle = gentleRing)
         startVibration()
         if (StrictAlarm.isStrictId(this, alarmId)) {
             // Resumed after a restart until verified, and never quiet.
@@ -140,7 +145,7 @@ class AlarmRingingService : Service() {
     }
 
     override fun onDestroy() {
-        if (ringing) WearAlarmSync.push(this, ringing = false, strict = strictRing)
+        if (ringing && watchRing) WearAlarmSync.push(this, ringing = false, strict = strictRing)
         ringing = false
         scope.cancel()
         stopRinging()
@@ -173,6 +178,7 @@ class AlarmRingingService : Service() {
     private var mission: String? = null
 
     private fun stopRinging() {
+        gentleJob?.cancel()
         player?.release()
         player = null
         vibrator?.cancel()
@@ -201,6 +207,22 @@ class AlarmRingingService : Service() {
             if (tone != null) startRingtone(null)
             return
         }
+        if (gentleRing) {
+            // A bell every few seconds, not a wall of sound: replayed after a pause.
+            mediaPlayer.setOnCompletionListener { done ->
+                // Its own job: a volume change cancels the ramp, and must not end the bells.
+                gentleJob = scope.launch {
+                    delay(GENTLE_GAP_MILLIS)
+                    runCatching { done.start() }
+                }
+            }
+            mediaPlayer.setOnPreparedListener { prepared ->
+                prepared.setVolume(GENTLE_VOLUME, GENTLE_VOLUME)
+                prepared.start()
+            }
+            mediaPlayer.prepareAsync()
+            return
+        }
         mediaPlayer.isLooping = true
         mediaPlayer.setOnPreparedListener { prepared ->
             val start = if (strictRing) STRICT_RAMP_START_VOLUME else RAMP_START_VOLUME
@@ -222,11 +244,15 @@ class AlarmRingingService : Service() {
         }
     }
 
+    private fun chimeUri(): Uri = Uri.parse("android.resource://$packageName/${R.raw.focus_chime}")
+
     private fun startVibration() {
         val defaultVibrator = getSystemService(VibratorManager::class.java).defaultVibrator
         vibrator = defaultVibrator
         defaultVibrator.vibrate(
-            VibrationEffect.createWaveform(longArrayOf(0, 700, 500), 0),
+            // The gentle ring taps once with each bell rather than buzzing on and off.
+            if (gentleRing) VibrationEffect.createWaveform(longArrayOf(0, 120, GENTLE_GAP_MILLIS + 2_480), 0)
+            else VibrationEffect.createWaveform(longArrayOf(0, 700, 500), 0),
             VibrationAttributes.createForUsage(VibrationAttributes.USAGE_ALARM)
         )
     }
@@ -270,8 +296,17 @@ class AlarmRingingService : Service() {
         AlarmType.PUSHUP -> "Pushups to silence it. No shortcuts."
         AlarmType.REVIEW -> "Answer your due flashcards to silence it."
         AlarmType.MATH -> "Solve the sums to silence it."
-        AlarmType.CUSTOM, AlarmType.WATER, AlarmType.PLAN, AlarmType.SHUTDOWN -> "Complete your verification."
+        AlarmType.SHUTDOWN -> "Write tomorrow's top three."
+        AlarmType.READING -> "Start your 30-minute reading session to silence it."
+        AlarmType.CUSTOM, AlarmType.WATER, AlarmType.PLAN -> "Complete your verification."
     }
+
+    /** The reading or top-three ring ([StrictAlarm.isGentleId]): soft chime, no ramp. */
+    private var gentleRing = false
+    private var gentleJob: kotlinx.coroutines.Job? = null
+
+    /** This ring was pushed to the watch, so its end must be too. */
+    private var watchRing = true
 
     companion object {
         private const val ACTION_STOP = "com.ogenrwotdaniel.wakeproof.action.STOP_RINGING"
@@ -286,6 +321,9 @@ class AlarmRingingService : Service() {
         /** A locked alarm's fade: louder sooner, since it cannot be snoozed anyway. */
         private const val STRICT_RAMP_START_VOLUME = 0.6f
         private const val STRICT_RAMP_DURATION_MS = 20_000L
+        /** The gentle ring's steady volume and the pause between bells. */
+        private const val GENTLE_VOLUME = 0.5f
+        private const val GENTLE_GAP_MILLIS = 3_000L
 
         /** A ring is playing in this process; see [StrictAlarm.resumeIfPending]. */
         @Volatile var ringing = false

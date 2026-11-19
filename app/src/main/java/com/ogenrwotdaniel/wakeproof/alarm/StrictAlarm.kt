@@ -9,10 +9,14 @@ import com.ogenrwotdaniel.wakeproof.data.db.AlarmType
  * The LOCKED alarms (2026-11-04, the user's request: "my first alarm at 3am,
  * no way around, can't be turned off on the phone, surviving restart too like
  * focus timing"; a second at 05:30 the same night, and both at 25 pushups).
- * Now one alone: 04:00 at 10 pushups ([SLOTS], [REPS]; moved from 03:00 on
- * 2026-11-19). The 05:40 pushups, the fixed 08:20 day-plan alarm (water until
+ * Now 04:00 at 30 pushups ([SLOTS], [REPS]; moved from 03:00 on 2026-11-19,
+ * 30 reps since 2026-11-20), plus two fixed but not hard slots added on
+ * 2026-11-20 at the user's request, both on a soft chime: the 12:00 lunch
+ * reading alarm ("force me to read 30 minutes a day"), silenced only by
+ * starting the 30-minute session, and tomorrow's top three at 20:50, ten
+ * minutes before bed. The 05:40 pushups, the fixed 08:20 day-plan alarm (water until
  * 2026-11-12), the 19:30 evening review (removed 2026-11-13) and the 19:40
- * top-three alarm (removed 2026-11-19) are gone ([DROPPED_KEYS]).
+ * top-three slot (removed 2026-11-19) are gone ([DROPPED_KEYS]).
  *
  * Each of [SLOTS] pins one alarm on the ringing device to its time and kind,
  * every day, enabled. Nothing on the phone can change it — the Settings rows
@@ -56,7 +60,18 @@ object StrictAlarm {
      * device would take the row it still holds under an old key for a new slot's.
      */
     val PINNED: List<IndexedValue<Slot>> = listOf(
-        IndexedValue(0, Slot(4, 0))
+        IndexedValue(0, Slot(4, 0)),
+        // Keys 5 and 6 (2026-11-20): key 4 was the 19:40 top three, and a device
+        // still holding that row must delete it, not move it.
+        IndexedValue(5, Slot(READING_MINUTES / 60, READING_MINUTES % 60, AlarmType.READING, hard = false)),
+        IndexedValue(
+            6,
+            Slot(
+                com.ogenrwotdaniel.wakeproof.plan.TOP_THREE_MINUTES / 60,
+                com.ogenrwotdaniel.wakeproof.plan.TOP_THREE_MINUTES % 60,
+                AlarmType.SHUTDOWN, hard = false
+            )
+        )
     )
 
     /** The locked alarms' times and kinds, in order. */
@@ -101,6 +116,9 @@ object StrictAlarm {
     val lastSlotMinute: Int get() = hardMinutes.max()
 
     const val REPS = com.ogenrwotdaniel.wakeproof.data.MAX_PUSHUP_TARGET
+
+    /** The lunch reading alarm's minute of the day (12:00). */
+    const val READING_MINUTES = 12 * 60
     const val MATH_FALLBACK_PROBLEMS = 10
     const val DAYS_MASK = 127
 
@@ -171,6 +189,30 @@ object StrictAlarm {
         if (alarmId == -1L) return false
         val prefs = prefs(context)
         return PINNED.any { it.value.hard && prefs.getLong(idKey(it.index), -1L) == alarmId }
+    }
+
+    /** Storage keys of the reading and top-three slots, whose rings are [isGentleId]. */
+    private const val READING_KEY = 5
+    private const val TOP_THREE_KEY = 6
+    private val GENTLE_KEYS = listOf(READING_KEY, TOP_THREE_KEY)
+
+    /**
+     * The top-three alarm, by row id: the one gentle ring kept off the watch.
+     * The reading alarm rings the watch too (the user, 2026-11-20: "make the
+     * reading alarm ring and vibrate on watch too since I have my watch on always").
+     */
+    fun isTopThreeId(context: Context, alarmId: Long): Boolean =
+        alarmId != -1L && prefs(context).getLong(idKey(TOP_THREE_KEY), -1L) == alarmId
+
+    /**
+     * The reading or top-three alarm, by row id (the user, 2026-11-20: "don't
+     * make the alarm too ugly", and "the reading alarm should use a softer
+     * sound"): they ring the soft focus chime instead of the alarm song.
+     */
+    fun isGentleId(context: Context, alarmId: Long): Boolean {
+        if (alarmId == -1L) return false
+        val prefs = prefs(context)
+        return GENTLE_KEYS.any { prefs.getLong(idKey(it), -1L) == alarmId }
     }
 
     /** The bundled alarm song (every alarm uses it), or null for the phone's alarm sound. */

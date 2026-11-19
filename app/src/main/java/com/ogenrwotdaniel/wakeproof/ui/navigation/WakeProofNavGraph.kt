@@ -13,6 +13,7 @@ import com.ogenrwotdaniel.wakeproof.ui.forest.ForestScreen
 import com.ogenrwotdaniel.wakeproof.ui.home.HomeScreen
 import com.ogenrwotdaniel.wakeproof.ui.onboarding.OnboardingScreen
 import com.ogenrwotdaniel.wakeproof.ui.plans.SessionSummariesScreen
+import com.ogenrwotdaniel.wakeproof.ui.plans.TopThreeScreen
 import com.ogenrwotdaniel.wakeproof.ui.pomodoro.PomodoroScreen
 import com.ogenrwotdaniel.wakeproof.ui.pomodoro.SummaryCaptureScreen
 import com.ogenrwotdaniel.wakeproof.ui.settings.SettingsScreen
@@ -66,8 +67,13 @@ fun WakeProofNavGraph(
                     onOpenAgenda = { navController.navigate(AgendaRoute) },
                     onOpenFlashcards = { navController.navigate(FlashcardsRoute) },
                     onOpenForest = { navController.navigate(ForestRoute) },
-                    onOpenSummaries = { navController.navigate(SessionSummariesRoute) }
+                    onOpenSummaries = { navController.navigate(SessionSummariesRoute) },
+                    onOpenTopThree = { navController.navigate(TopThreeRoute) { launchSingleTop = true } },
                 )
+            }
+            composable<TopThreeRoute> {
+                // Popped by name: Save and a second tap must not pop the screen under it too.
+                TopThreeScreen(onFinish = { navController.popBackStack(TopThreeRoute, inclusive = true) })
             }
             composable<OnboardingRoute> {
                 OnboardingScreen(

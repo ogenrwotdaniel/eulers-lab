@@ -22,15 +22,17 @@ import java.util.UUID
  * [PLAN] (a photo of the day's handwritten plan) is retired the same way
  * since 2026-11-13: the user writes a summary after every focus session
  * instead. [SHUTDOWN] was the evening review and then the 19:40 top-three
- * alarm, retired too since 2026-11-19 at the user's request ("remove tomorrow
- * top three features"). [REVIEW] is a run of due flashcards.
+ * alarm (retired 2026-11-19); since 2026-11-20 it is tomorrow's top three
+ * again, at 20:50, and exists only as that fixed slot. [REVIEW] is a run of due
+ * flashcards. [READING] (2026-11-20) is the 12:00 lunch reading alarm, silenced
+ * by starting the 30-minute reading session; it too exists only as its slot.
  */
 @Serializable
 enum class AlarmType {
-    PUSHUP, WATER, CUSTOM, MATH, PLAN, REVIEW, SHUTDOWN;
+    PUSHUP, WATER, CUSTOM, MATH, PLAN, REVIEW, SHUTDOWN, READING;
 
     /** No longer offered, armed or counted. */
-    val retired: Boolean get() = this == WATER || this == PLAN || this == SHUTDOWN
+    val retired: Boolean get() = this == WATER || this == PLAN
 }
 
 /**

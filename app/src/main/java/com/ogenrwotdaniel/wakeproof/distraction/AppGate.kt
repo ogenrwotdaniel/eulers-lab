@@ -10,7 +10,7 @@ import com.ogenrwotdaniel.wakeproof.BuildConfig
 /**
  * Social, video, messaging and feed apps — and browsers, while
  * [WallRule.GATE_BROWSERS] is on — are walled by [AppBlockService] outside
- * the daily 12:25–12:50 open window (2026-11-16).
+ * the daily 12:45–12:55 open window (12:45–12:55 since 2026-11-20).
  *
  * Inside that window they open directly with no countdown wait and no separate
  * 25-minute budget (both deleted 2026-11-06). Outside it they are covered by
@@ -40,6 +40,11 @@ object AppGate {
      */
     const val GEMINI_APP = "com.google.android.apps.bard"
 
+    /**
+     * Not gated since 2026-11-20 (the user: "unrestrict playstore since most of my
+     * apps are too outdated"): open outside the night wall, focus sessions and the
+     * other walls that cover every app. Still never quarantined ([QUARANTINE_EXEMPT]).
+     */
     const val PLAY_STORE = "com.android.vending"
 
     /**
@@ -71,15 +76,13 @@ object AppGate {
         "com.google.android.apps.youtube.music", "com.google.android.apps.youtube.kids",
         "com.samsung.android.app.spage", "com.samsung.android.tvplus",
         "net.daum.android.daum", "com.nhn.android.search",
-        // The store itself: a new feed is one install away.
-        PLAY_STORE,
         // Alternative clients for the apps above.
         "org.schabi.newpipe", "app.revanced.android.youtube", "app.rvx.android.youtube",
         "xyz.blueskyweb.app", "org.joinmastodon.android", "ml.docilealligator.infinityforreddit"
     )
 
     /**
-     * Walled like any gated app, but never by [NewAppQuarantine]: [GOOGLE_APP]
+     * Never walled by [NewAppQuarantine]: [GOOGLE_APP] (gated like any feed)
      * also hosts [GEMINI_APP] (`BardShell` trampolines into `.voice.robin.*`
      * inside it), and a new install must never lock [PLAY_STORE], which
      * updates everything else.
