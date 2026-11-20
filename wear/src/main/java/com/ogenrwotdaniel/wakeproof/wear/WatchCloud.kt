@@ -44,10 +44,11 @@ import kotlinx.coroutines.withTimeout
  *
  * ### Signing in
  *
- * Same Google account as the phone, so the same `users/{uid}` tree. Either on
- * the watch (Credential Manager, from [MainActivity]) or handed over from the
- * phone as a fresh ID token ([CloudAuthListenerService]). Firebase keeps the
- * session on the watch afterwards; neither is needed again.
+ * Same Google account as the phone, so the same `users/{uid}` tree, always
+ * handed over from the phone as a fresh ID token ([CloudAuthListenerService]):
+ * the watch's button asks the phone to open its account picker. Signing in on
+ * the watch itself was dropped on 2026-11-20 because Samsung's picker there
+ * crashed on every tap. Firebase keeps the session on the watch afterwards.
  */
 internal object WatchCloud {
 
@@ -56,7 +57,7 @@ internal object WatchCloud {
     val configured: Boolean
         get() = BuildConfig.FIREBASE_PROJECT_ID.isNotBlank() && BuildConfig.FIREBASE_API_KEY.isNotBlank()
 
-    val canSignInHere: Boolean get() = configured && BuildConfig.WEB_CLIENT_ID.isNotBlank()
+    val canSignInHere: Boolean get() = configured
 
     @Volatile private var firestore: FirebaseFirestore? = null
 

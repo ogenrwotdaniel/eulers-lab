@@ -25,6 +25,14 @@ internal object TimerCommands {
     const val RESUME = "timer_resume"
 
     /**
+     * "Sign in to cloud": the phone opens its account picker and sends this watch
+     * a token over `/wakeproof/auth`. The watch's own picker (Samsung's system
+     * Credential Manager) crashes on every tap, seen 2026-11-20. Mirrors the
+     * phone's `WearContract.CMD_SIGN_IN`.
+     */
+    const val SIGN_IN = "watch_sign_in"
+
+    /**
      * `agenda_done:<event key>` — ticks a calendar event on the phone, which
      * re-pushes `/wakeproof/agenda`. Mirrors the phone's
      * `WearContract.CMD_AGENDA_DONE_PREFIX`.

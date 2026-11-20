@@ -62,6 +62,11 @@ class PhoneCommandListenerService : WearableListenerService() {
         when (command) {
             WearContract.CMD_TIMER_START -> PomodoroTimerService.start(applicationContext)
             WearContract.CMD_TIMER_RESUME -> PomodoroTimerService.resume(applicationContext)
+            // An activity start from the background: allowed by the same
+            // SYSTEM_ALERT_WINDOW exemption as the timer start above.
+            WearContract.CMD_SIGN_IN -> runCatching {
+                startActivity(WatchSignInActivity.intent(applicationContext))
+            }
             // Pause and stop are gone (nuclear focus: a session has no way out), so an
             // old watch's "timer_pause" / "timer_stop" lands here and does nothing.
             // An unknown command is a watch running a newer build than the

@@ -177,6 +177,15 @@
             android:name=".agenda.EventDoneReceiver"
             android:exported="false" />
 
+        <!-- The watch's "Sign in to cloud": the account picker on the phone, then the
+             token to the watch. No noHistory: the picker is another app's activity on top. -->
+        <activity
+            android:name=".wear.WatchSignInActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:taskAffinity=""
+            android:theme="@style/Theme.WakeProof.Translucent" />
+
         <!-- "Focus for this event": the confirm alone, from a reminder. -->
         <activity
             android:name=".agenda.EventFocusActivity"

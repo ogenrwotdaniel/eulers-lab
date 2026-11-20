@@ -16,10 +16,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.credentials.CredentialManager
-import androidx.credentials.GetCredentialRequest
-import androidx.credentials.exceptions.GetCredentialCancellationException
-import androidx.credentials.exceptions.GetCredentialException
 import androidx.wear.ambient.AmbientLifecycleObserver
 import androidx.wear.compose.foundation.pager.HorizontalPager
 import androidx.wear.compose.foundation.pager.rememberPagerState
@@ -31,8 +27,6 @@ import androidx.wear.compose.material3.TimeText
 import com.google.android.gms.wearable.DataClient
 import com.google.android.gms.wearable.DataEventBuffer
 import com.google.android.gms.wearable.Wearable
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Date
@@ -339,7 +333,7 @@ class MainActivity : ComponentActivity() {
                 if (refusal != null) toast(refusal) else WatchTimerEngine.start(applicationContext, action.session)
             }
             IdleAction.StartOnPhone -> sendToPhone("Start on phone", TimerCommands.START)
-            IdleAction.SignIn -> runThenRender { signInHere() }
+            IdleAction.SignIn -> runThenRender { signInThroughPhone() }
         }
     }
 
@@ -374,29 +368,16 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * Google sign-in on the watch itself, for the direct cloud upload. The
-     * phone's Settings → Sync → "Sign in the watch" does the same without the
-     * small-screen picker; this is for when the phone is not around.
+     * Signs the watch in through the phone: the phone opens its own account
+     * picker and sends back a token (`CloudAuthListenerService`). There is no
+     * picker on the watch any more, because Samsung's crashes on every tap.
      */
-    private suspend fun signInHere() {
-        val option = GetGoogleIdOption.Builder()
-            .setServerClientId(BuildConfig.WEB_CLIENT_ID)
-            .setFilterByAuthorizedAccounts(false)
-            .build()
-        val request = GetCredentialRequest.Builder().addCredentialOption(option).build()
-        val token = try {
-            val response = CredentialManager.create(this).getCredential(this, request)
-            GoogleIdTokenCredential.createFrom(response.credential.data).idToken
-        } catch (e: GetCredentialCancellationException) {
-            return
-        } catch (e: GetCredentialException) {
-            cloudMessage = "Couldn't sign in here.\nOn the phone: Settings → Sync → Sign in the watch."
-            return
+    private suspend fun signInThroughPhone() {
+        cloudMessage = if (TimerCommands.send(applicationContext, TimerCommands.SIGN_IN)) {
+            "Pick your account on the phone."
+        } else {
+            "Phone unreachable.\nOn the phone: Settings → Sync → Sign in the watch."
         }
-        cloudMessage = WatchCloud.signIn(applicationContext, token).fold(
-            onSuccess = { "Signed in as $it" },
-            onFailure = { "Sign-in failed: ${it.message}" }
-        )
     }
 
     private fun toast(text: String) = Toast.makeText(this, text, Toast.LENGTH_LONG).show()

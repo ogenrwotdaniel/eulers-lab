@@ -103,6 +103,15 @@ object WearContract {
     const val CMD_TIMER_RESUME = "timer_resume"
 
     /**
+     * The watch's "Sign in to cloud": opens [WatchSignInActivity] on this phone,
+     * which picks the account here and hands the watch a token over
+     * [AUTH_PATH]. Samsung's account picker on the watch crashes on every tap
+     * (2026-11-20), so the watch no longer signs in by itself. MUST match wear
+     * `TimerCommands.SIGN_IN`.
+     */
+    const val CMD_SIGN_IN = "watch_sign_in"
+
+    /**
      * `agenda_done:<event key>` — the watch's tick on a calendar event. The
      * phone marks it done in `AgendaRepository` and re-pushes [AGENDA_PATH];
      * the watch changes nothing until that push lands.
