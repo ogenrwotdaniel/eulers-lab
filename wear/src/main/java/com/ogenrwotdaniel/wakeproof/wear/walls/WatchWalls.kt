@@ -122,11 +122,19 @@ object WatchGate {
     ): Boolean =
         packageName !in essentials && packageName !in NEVER_WALLED && (
             packageName in KNOWN_GATED ||
-                category == ApplicationInfo.CATEGORY_SOCIAL ||
-                category == ApplicationInfo.CATEGORY_VIDEO ||
+                (packageName !in CATEGORY_SPARED && (
+                    category == ApplicationInfo.CATEGORY_SOCIAL || category == ApplicationInfo.CATEGORY_VIDEO
+                    )) ||
                 isBrowser ||
                 packageName.startsWith(WEBAPK_PREFIX)
             )
+
+    /**
+     * COPY of `AppGate.CATEGORY_SPARED`: Gmail, filed as social by the Play
+     * Store, is open on the watch as on the phone (the user, 2026-11-20: "make
+     * Gmail open on the watch too").
+     */
+    val CATEGORY_SPARED = setOf("com.google.android.gm")
 
     /** COPY of `AppGate.WEBAPK_PREFIX`: Chrome's saved-site shells are browsers too. */
     const val WEBAPK_PREFIX = "org.chromium.webapk."

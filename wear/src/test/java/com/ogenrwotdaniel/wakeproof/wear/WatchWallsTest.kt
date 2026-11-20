@@ -54,6 +54,11 @@ class WatchWallsTest {
     }
 
     @Test
+    fun `gmail is open although the Play Store files it as social`() {
+        assertFalse(WatchGate.isGated("com.google.android.gm", ApplicationInfo.CATEGORY_SOCIAL, false, emptySet()))
+    }
+
+    @Test
     fun `the watch copy keeps every phone package`() {
         assertTrue(WatchGate.KNOWN_GATED.containsAll(WatchGate.PHONE_KNOWN_GATED))
         assertTrue(WatchGate.KNOWN_GATED.containsAll(WatchGate.PHONE_KNOWN_BROWSERS))

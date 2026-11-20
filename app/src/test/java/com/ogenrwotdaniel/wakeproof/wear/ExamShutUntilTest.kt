@@ -39,6 +39,8 @@ class ExamShutUntilTest {
         // The Play Store is open on both since 2026-11-20.
         assertTrue(AppGate.PLAY_STORE !in AppGate.KNOWN_GATED_PACKAGES)
         assertTrue("PLAY_STORE,\n" !in source)
+        // Gmail is spared the category rule on both (2026-11-20).
+        for (pkg in AppGate.CATEGORY_SPARED) assertTrue("$pkg not spared on the watch", "\"$pkg\"" in source)
     }
 
     /** The watch's schedule is a hand copy too; a window change made on one side only would pass both modules' tests. */
