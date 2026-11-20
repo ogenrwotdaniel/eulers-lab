@@ -88,7 +88,7 @@ data class WakeProofSettings(
     val subjectCredits: Map<String, Int> = emptyMap(),
     /**
      * Apps that ARE studying — Samsung Notes, Claude, Gemini, Smart-Check, AnyOTP,
-     * Camera, Clock, Calendar, and Outlook by default. Time in them during a
+     * Camera, Clock, Calendar, and Gmail by default. Time in them during a
      * session counts as study, not as screen time against you, and leaving
      * Euler's Lab for one of them does not wither the session's tree.
      */
@@ -115,7 +115,7 @@ data class WakeProofSettings(
         const val SAMSUNG_NOTES_ADDONS = "com.samsung.android.app.notes.addons"
         const val CLAUDE = "com.anthropic.claude"
         const val GEMINI = "com.google.android.apps.bard"
-        const val OUTLOOK = "com.microsoft.office.outlook"
+        const val GMAIL = "com.google.android.gm"
         const val UNIST_SMART_CHECK = "kr.ac.unist.atdc"
         const val ANY_OTP = "com.dreammirae.otp.android.mirae.multiid.market"
         const val SAMSUNG_CAMERA = "com.sec.android.app.camera"
@@ -129,7 +129,7 @@ data class WakeProofSettings(
             SAMSUNG_NOTES_ADDONS,
             CLAUDE,
             GEMINI,
-            OUTLOOK,
+            GMAIL,
             UNIST_SMART_CHECK,
             ANY_OTP,
             SAMSUNG_CAMERA,

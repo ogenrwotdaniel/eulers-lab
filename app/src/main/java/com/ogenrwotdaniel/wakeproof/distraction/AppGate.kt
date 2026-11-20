@@ -115,6 +115,16 @@ object AppGate {
     /** KakaoBank: its sign-in and payment pages open inside Chrome. */
     const val KAKAOBANK = "com.kakaobank.channel"
 
+    /**
+     * Gmail, a home pin open all day but bed hours (2026-11-20, in Outlook's
+     * place). The Play Store files it as social (`category=… override: 4`),
+     * which alone would gate it outside the 12:45 window.
+     */
+    const val GMAIL = "com.google.android.gm"
+
+    /** Apps the social/video category rule never gates; a named one still is. */
+    val CATEGORY_SPARED = setOf(GMAIL)
+
     /** UNIST Smart-Check (attendance). */
     const val UNIST_SMART_CHECK = "kr.ac.unist.atdc"
 
@@ -169,8 +179,9 @@ object AppGate {
     ): Boolean =
         packageName in KNOWN_GATED_PACKAGES || (
             packageName != defaultSmsPackage && (
-                category == ApplicationInfo.CATEGORY_SOCIAL ||
-                    category == ApplicationInfo.CATEGORY_VIDEO ||
+                (packageName !in CATEGORY_SPARED && (
+                    category == ApplicationInfo.CATEGORY_SOCIAL || category == ApplicationInfo.CATEGORY_VIDEO
+                    )) ||
                     (gateBrowsers && (isBrowser || packageName.startsWith(WEBAPK_PREFIX)))
                 )
             )

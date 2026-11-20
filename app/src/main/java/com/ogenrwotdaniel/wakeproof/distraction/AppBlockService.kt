@@ -150,7 +150,7 @@ class AppBlockService : Service() {
     /**
      * Open between 04:00 and 21:00 (including through the phone's 04:00–08:00
      * and 18:00–21:00 hours and during focus sessions): Camera, Notes, Claude,
-     * Gemini, Smart-Check, AnyOTP, Outlook, KakaoBank, Clock, Calendar, and
+     * Gemini, Smart-Check, AnyOTP, Gmail, KakaoBank, Clock, Calendar, and
      * system file/photo pickers. Between 21:00 and 04:00 ([sleepWallActive]),
      * only [sleepExempt] remains open, and on the phone its cameras ([nightExemptAt]).
      */

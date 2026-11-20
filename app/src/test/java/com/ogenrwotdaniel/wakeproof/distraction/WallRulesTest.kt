@@ -124,6 +124,13 @@ class WallRulesTest {
     }
 
     @Test
+    fun `gmail is never gated by the social category the Play Store gives it`() {
+        assertFalse(AppGate.isGated(AppGate.GMAIL, ApplicationInfo.CATEGORY_SOCIAL, null))
+        assertTrue(AppGate.isGated("com.example.social", ApplicationInfo.CATEGORY_SOCIAL, null))
+        assertTrue(AppGate.GMAIL in com.ogenrwotdaniel.wakeproof.launcher.NAMED_TOOLS)
+    }
+
+    @Test
     fun `browsers are gated only while the rule is on`() {
         val samsung = "com.sec.android.app.sbrowser"
         val other = ApplicationInfo.CATEGORY_UNDEFINED

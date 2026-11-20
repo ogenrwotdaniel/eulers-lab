@@ -2,7 +2,7 @@
 
 **Effective date:** 20 November 2026
 **Developer:** Ogenrwot Daniel
-**Contact:** ogenrwotdaniel@unist.ac.kr
+**Contact:** ogenrwotdaniel@gmail.com
 
 Euler's Lab (formerly WakeProof) is an alarm clock and study companion app. This policy explains what
 data the app handles, where it goes, and the choices you have. The short
@@ -128,7 +128,7 @@ under Settings → Sync across devices, and stops when you sign out.
   and it is never sold, shared or used for advertising.
 - **Turning it off:** sign out in Settings. Your data stays on the device; it
   simply stops mirroring.
-- **Deleting it:** email **ogenrwotdaniel@unist.ac.kr** from the address you
+- **Deleting it:** email **ogenrwotdaniel@gmail.com** from the address you
   signed in with and your stored data and account record will be deleted.
 
 If you never sign in, none of the above applies and no account data is
@@ -200,7 +200,7 @@ Settings → Apps → Euler's Lab → Storage → Clear data.
 
 If you enabled cloud sync, a copy also exists under your account. Signing out
 stops the mirroring but does not erase that copy; to have it deleted, email
-**ogenrwotdaniel@unist.ac.kr** from the address you signed in with. Data you
+**ogenrwotdaniel@gmail.com** from the address you signed in with. Data you
 export yourself (CSV or JSON backup) is under your control. Data already
 processed by Google Gemini is subject to Google's policy and account tools.
 
@@ -283,4 +283,4 @@ snapshot your phone sends to a paired watch.
 
 ## Contact
 
-Questions or requests: **ogenrwotdaniel@unist.ac.kr**
+Questions or requests: **ogenrwotdaniel@gmail.com**

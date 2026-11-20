@@ -24,8 +24,13 @@ const val CLAUDE = "com.anthropic.claude"
 /** Standalone Google Gemini — replaces the gated Google app (`googlequicksearchbox`), 2026-11-06. */
 const val GEMINI = AppGate.GEMINI_APP
 
-/** Microsoft Outlook — UNIST university email, instead of the portal (user's request, 2026-11-09). */
-const val OUTLOOK = "com.microsoft.office.outlook"
+/**
+ * Gmail — the user's email, in Outlook's place since 2026-11-20 (the user:
+ * "replace outlook with Gmail ... granting Gmail outlook's privilege of being
+ * opened full time except sleeping hour"). Outlook (UNIST mail, 2026-11-09) is
+ * an ordinary app again.
+ */
+const val GMAIL = AppGate.GMAIL
 
 /** KakaoBank — added by the user's request, 2026-10-27. */
 const val KAKAOBANK = AppGate.KAKAOBANK
@@ -71,7 +76,7 @@ val NAMED_TOOLS = setOf(
     SAMSUNG_NOTES_ADDONS,
     CLAUDE,
     GEMINI,
-    OUTLOOK,
+    GMAIL,
     KAKAOBANK,
     UNIST_SMART_CHECK,
     ANY_OTP,
@@ -84,7 +89,7 @@ val NAMED_TOOLS = setOf(
 /**
  * The tools that are always on the home screen and cannot be unpinned, in
  * order: the phone, the cameras, notes, Claude, Gemini, Smart-Check, AnyOTP,
- * Outlook, the bank, the clock and the calendar.
+ * Gmail, the bank, the clock and the calendar.
  * Chosen by the user as things a phone is FOR rather than things it is used
  * to fill time with. Roles (phone, camera, clock, calendar) are resolved from
  * whatever app holds them, so a non-Samsung default still lands here; apps
@@ -109,7 +114,7 @@ fun permanentPackages(context: Context): List<String> {
         camera, SAMSUNG_CAMERA, EXPERT_RAW,
         SAMSUNG_NOTES, CLAUDE, GEMINI,
         UNIST_SMART_CHECK, ANY_OTP,
-        OUTLOOK, KAKAOBANK,
+        GMAIL, KAKAOBANK,
         clock, SAMSUNG_CLOCK, GOOGLE_CLOCK,
         calendar, SAMSUNG_CALENDAR, GOOGLE_CALENDAR
     )
