@@ -21,9 +21,9 @@ import com.ogenrwotdaniel.wakeproof.distraction.clockProven
  * installer's "manage admins"), and the wall service covers that screen
  * while the lock is on ([coversDeactivation]). Still open, on purpose or
  * because nothing else can close them: adb from 2027-11-21 on ([releaseAllowed]), Safe Mode (WakeProof does not
- * run there), a force stop from App info (the service stops until the home
- * screen, Euler's Lab's own, comes back; the grant screens and the off screen
- * are unwalled meanwhile), and a factory reset. Revoking usage access or the
+ * run there) and a factory reset. A force stop from App info is not one:
+ * Android greys the button out for an active device admin (checked on the
+ * phone and the tablet, One UI on Android 16, 2026-11-21). Revoking usage access or the
  * overlay permission is walled on their own screens until 2027-11-21 ([GRANT_SCREENS]). Nor beside an
  * essential app such as the dialer in split screen: no wall lands next to a
  * call ([AppBlockService] `mayLandOver`).

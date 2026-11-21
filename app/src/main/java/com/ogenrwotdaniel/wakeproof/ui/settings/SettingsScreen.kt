@@ -601,8 +601,8 @@ private fun UninstallLockSection(modifier: Modifier = Modifier) {
                 "There is no off button, and until 21 November 2027 the computer (adb) way out " +
                 "is refused too; updates still install. Until then the usage access and " +
                 "display-over-apps screens are walled as well, so those grants stay on (no " +
-                "other app can be given them meanwhile). Safe Mode, a force stop from App info, or a factory " +
-                "reset still gets past it.",
+                "other app can be given them meanwhile). Force stop in App info is greyed out " +
+                "while the lock is on. Safe Mode or a factory reset still gets past it.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
