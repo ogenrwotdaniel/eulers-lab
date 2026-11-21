@@ -97,4 +97,13 @@ class UninstallLockTest {
             "com.android.settings.SubSettings"
         ).forEach { assertFalse(it, UninstallLock.coversDeactivation(true, settings, setOf(it))) }
     }
+
+    @Test
+    fun `after the hold the grant screens open but the admin screen stays covered`() {
+        val overlay = "com.android.settings.Settings\$OverlaySettingsActivity"
+        val usage = "com.android.settings.Settings\$AppUsageAccessSettingsActivity"
+        assertFalse(UninstallLock.coversDeactivation(true, settings, setOf(overlay), holdOver = true))
+        assertFalse(UninstallLock.coversDeactivation(true, settings, setOf(usage), holdOver = true))
+        assertTrue(UninstallLock.coversDeactivation(true, settings, setOf(deactivate), holdOver = true))
+    }
 }

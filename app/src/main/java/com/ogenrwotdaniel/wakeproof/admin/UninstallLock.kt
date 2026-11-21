@@ -24,7 +24,7 @@ import com.ogenrwotdaniel.wakeproof.distraction.clockProven
  * run there), a force stop from App info (the service stops until the home
  * screen, Euler's Lab's own, comes back; the grant screens and the off screen
  * are unwalled meanwhile), and a factory reset. Revoking usage access or the
- * overlay permission is walled on their own screens ([COVERED_SCREENS]). Nor beside an
+ * overlay permission is walled on their own screens until 2027-11-21 ([GRANT_SCREENS]). Nor beside an
  * essential app such as the dialer in split screen: no wall lands next to a
  * call ([AppBlockService] `mayLandOver`).
  *
@@ -45,15 +45,15 @@ object UninstallLock {
      * AOSP list): turning either grant off drops every wall, this cover
      * included, and then the lock's own off screen goes unwalled. An app may
      * not refuse a revocation, so covering the screen is all there is. The
-     * price is the same as for admins: no other app can be given usage access
-     * or display over apps while the lock is on. Granting Euler's Lab its own
+     * price: no other app can be given usage access or display over apps
+     * meanwhile (the class names no app, so Euler's Lab's own page cannot be
+     * told apart), which is why the grant screens are covered only for the
+     * hold's year ([GRANT_SCREENS], the user: "keep it for one year") and the
+     * admin screen for as long as the lock is on. Granting Euler's Lab its own
      * lost grant still works, because without that grant no wall can land.
      */
-    private val COVERED_SCREENS = listOf(
-        "DeviceAdminAdd",
-        "UsageAccessSettingsActivity",
-        "OverlaySettingsActivity"
-    )
+    private const val ADMIN_SCREEN = "DeviceAdminAdd"
+    private val GRANT_SCREENS = listOf("UsageAccessSettingsActivity", "OverlaySettingsActivity")
 
     fun component(context: Context): ComponentName = ComponentName(context, WakeProofAdmin::class.java)
 
@@ -109,18 +109,25 @@ object UninstallLock {
     /**
      * Pure: whether the screen in front is where the lock would be switched off,
      * or where a grant it rests on would be revoked: [lockOn], and one of
-     * [frontClasses] is one of [COVERED_SCREENS]. The same screens also serve
+     * [frontClasses] is the admin screen, or a grant screen while not
+     * [holdOver] ([releaseAllowed]: a proven clock past [HELD_UNTIL_MILLIS], so
+     * a clock set ahead by hand opens nothing). The same screens also serve
      * other apps; covering it for them too is the
      * price, as Usage Access names the activity but not whose admin it shows.
      * Never while the lock is off, or WakeProof's own activation would be walled.
      */
-    fun coversDeactivation(lockOn: Boolean, frontPackage: String, frontClasses: Collection<String>): Boolean =
+    fun coversDeactivation(
+        lockOn: Boolean,
+        frontPackage: String,
+        frontClasses: Collection<String>,
+        holdOver: Boolean = false
+    ): Boolean =
         lockOn && frontPackage == SETTINGS_PACKAGE &&
             // Ends-with: One UI names it SecDeviceAdminAdd (seen on the Tab S9 FE+, Android 16),
             // and the grant screens are inner classes (Settings$AppUsageAccessSettingsActivity).
             frontClasses.any { cls ->
                 val name = cls.substringAfterLast('.')
-                COVERED_SCREENS.any { name.endsWith(it) }
+                name.endsWith(ADMIN_SCREEN) || (!holdOver && GRANT_SCREENS.any { name.endsWith(it) })
             }
 
     const val SETTINGS_PACKAGE = "com.android.settings"

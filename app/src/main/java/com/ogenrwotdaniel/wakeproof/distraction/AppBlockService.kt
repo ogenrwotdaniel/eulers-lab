@@ -923,7 +923,9 @@ class AppBlockService : Service() {
         // The newest screen only: a lost PAUSED must not wall every Settings page
         // (the date and time one is the way out of the clock wall).
         val classes = listOfNotNull(tracker.newestClass(pkg))
-        if (!UninstallLock.coversDeactivation(lockOn = true, pkg, classes)) return false
+        // The grant screens open after the hold's year, on a proven clock only.
+        val holdOver = UninstallLock.releaseAllowed(clockProven(this), System.currentTimeMillis())
+        if (!UninstallLock.coversDeactivation(lockOn = true, pkg, classes, holdOver)) return false
         // Not over the activation just made: its screen is still up for a moment.
         // Only onEnabled starts the grace. Stamping it here when the tick sees the
         // lock come on was tried and dropped: that can be seen hours late, on the

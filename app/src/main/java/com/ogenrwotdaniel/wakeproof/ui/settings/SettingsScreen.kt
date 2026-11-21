@@ -599,9 +599,9 @@ private fun UninstallLockSection(modifier: Modifier = Modifier) {
                 "keep working). Android then refuses to uninstall it, and the screen that " +
                 "switches the admin off is walled, along with other apps' admin screens. " +
                 "There is no off button, and until 21 November 2027 the computer (adb) way out " +
-                "is refused too; updates still install. The usage access and display-over-apps " +
-                "screens are walled as well, so those grants stay on (no other app can be " +
-                "given them meanwhile). Safe Mode, a force stop from App info, or a factory " +
+                "is refused too; updates still install. Until then the usage access and " +
+                "display-over-apps screens are walled as well, so those grants stay on (no " +
+                "other app can be given them meanwhile). Safe Mode, a force stop from App info, or a factory " +
                 "reset still gets past it.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant

@@ -139,6 +139,15 @@ fun WatchTimerState.toSnapshot(now: Long) = TimerSnapshot(
 )
 
 /**
+ * Pure: [wallMillis] (a wall-clock instant, which every finish time here is) on
+ * the elapsedRealtime scale that [Status.TimerPart] counts against. Handed the
+ * wall clock itself, the chip counted down to a moment some 57 years after
+ * boot and showed "498670:41:…" in place of the session (seen 2026-11-21).
+ */
+fun wallToElapsedRealtime(wallMillis: Long, nowWall: Long, nowElapsed: Long): Long =
+    nowElapsed + (wallMillis - nowWall)
+
+/**
  * Posts / updates / cancels the watch's Ongoing Activity for the running
  * Pomodoro. When running, a [Status.TimerPart] anchored to the finish time
  * counts down on the watch itself — smooth ticking with no per-second sync.
@@ -188,15 +197,20 @@ object TimerNotifier {
         )
         val phase = snapshot.phase.ifBlank { "Focus" }
         val status = if (snapshot.running) {
+            val endsAt = wallToElapsedRealtime(
+                snapshot.finishAtMillis, System.currentTimeMillis(), android.os.SystemClock.elapsedRealtime()
+            )
+            // The app's name first: the chip is what is tapped to open it (the user,
+            // 2026-11-21: it should read "Euler's Lab", not a bare number).
             Status.Builder()
-                .addTemplate("$phase · #timer#")
-                .addPart("timer", Status.TimerPart(snapshot.finishAtMillis))
+                .addTemplate("Euler's Lab · #timer#")
+                .addPart("timer", Status.TimerPart(endsAt))
                 .build()
         } else {
             val minutes = snapshot.remainingSeconds / 60
             val seconds = snapshot.remainingSeconds % 60
             Status.Builder()
-                .addTemplate("$phase paused #time#")
+                .addTemplate("Euler's Lab · paused #time#")
                 .addPart("time", Status.TextPart("%d:%02d".format(minutes, seconds)))
                 .build()
         }

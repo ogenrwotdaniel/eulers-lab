@@ -61,6 +61,7 @@ class DistractionLimitRepository @Inject constructor(
      * undo. Loosenings already queued under that week are never landed.
      */
     suspend fun requestLimit(packageName: String, minutes: Int?, mode: LimitMode = LimitMode.NUDGE): Boolean {
+        if (packageName in UNCAPPED_PACKAGES) return false
         val proposed = minutes?.takeIf { it > 0 }?.let { AppLimit(it, mode) }
         var applied = false
         dataStore.edit { prefs ->
@@ -88,6 +89,15 @@ class DistractionLimitRepository @Inject constructor(
     }
 
     companion object {
+        /**
+         * Apps no cap ever applies to: a stored one is read as absent and a new
+         * one is refused. Claude since 2026-11-21 (the user: "remove waiting
+         * time and restrictions for claude"), so no cap wall, no nudge and no
+         * 45 s mindful pause on the home screen; the walls every app shares
+         * (bed hours, the clock wall) still stand.
+         */
+        val UNCAPPED_PACKAGES = setOf("com.anthropic.claude")
+
         private val LIMITS = stringSetPreferencesKey("limits")
         private val NOTIFIED = stringSetPreferencesKey("notified")
 
@@ -128,7 +138,8 @@ class DistractionLimitRepository @Inject constructor(
         fun parseLimits(entries: Set<String>): Map<String, AppLimit> =
             entries.mapNotNull { entry ->
                 val parts = entry.split('|')
-                val pkg = parts.getOrNull(0)?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+                val pkg = parts.getOrNull(0)?.takeIf { it.isNotEmpty() && it !in UNCAPPED_PACKAGES }
+                    ?: return@mapNotNull null
                 val minutes = parts.getOrNull(1)?.toIntOrNull()?.takeIf { it > 0 }
                     ?: return@mapNotNull null
                 val mode = parts.getOrNull(2)

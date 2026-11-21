@@ -46,4 +46,11 @@ class DistractionLimitParsingTest {
         assertEquals(20, parsed.getValue("com.ab").minutes)
         assertNull(parsed["com.abc"])
     }
+
+    @Test
+    fun `a cap stored on Claude is read as none, so it never waits or walls`() {
+        val parsed = parseLimits(setOf("com.anthropic.claude|30|BLOCK", "com.instagram.android|30"))
+        assertNull(parsed["com.anthropic.claude"])
+        assertEquals(30, parsed["com.instagram.android"]?.minutes)
+    }
 }
