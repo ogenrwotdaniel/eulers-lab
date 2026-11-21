@@ -6,7 +6,9 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.SystemClock
+import android.util.Log
 import com.ogenrwotdaniel.wakeproof.distraction.SIDELOADED_BUILD
+import com.ogenrwotdaniel.wakeproof.distraction.clockProven
 
 /**
  * WakeProof as a plain device admin (2026-11-08, the user's choice), so
@@ -18,9 +20,11 @@ import com.ogenrwotdaniel.wakeproof.distraction.SIDELOADED_BUILD
  * (from App info's Uninstall, from Device admin apps, or from the package
  * installer's "manage admins"), and the wall service covers that screen
  * while the lock is on ([coversDeactivation]). Still open, on purpose or
- * because nothing else can close them: adb, Safe Mode (WakeProof does not
- * run there), revoking usage access or the overlay permission (the cover
- * goes; the greyed-out Uninstall stays), and a factory reset. Nor beside an
+ * because nothing else can close them: adb from 2027-11-21 on ([releaseAllowed]), Safe Mode (WakeProof does not
+ * run there), a force stop from App info (the service stops until the home
+ * screen, Euler's Lab's own, comes back; the grant screens and the off screen
+ * are unwalled meanwhile), and a factory reset. Revoking usage access or the
+ * overlay permission is walled on their own screens ([COVERED_SCREENS]). Nor beside an
  * essential app such as the dialer in split screen: no wall lands next to a
  * call ([AppBlockService] `mayLandOver`).
  *
@@ -30,8 +34,26 @@ import com.ogenrwotdaniel.wakeproof.distraction.SIDELOADED_BUILD
 object UninstallLock {
     val AVAILABLE = SIDELOADED_BUILD
 
-    /** Settings' activity both for turning an admin on and for turning it off. */
-    private const val DEACTIVATE_SCREEN = "DeviceAdminAdd"
+    /**
+     * Settings screens covered while the lock is on, matched by the end of the
+     * class name. `DeviceAdminAdd` turns an admin on and off. Since 2026-11-21
+     * (the user: "make usage access and display over other apps permanent once
+     * turned on") also the usage access and display-over-apps screens, list and
+     * per-app alike (seen on the S25 Edge, One UI, Android 16:
+     * `Settings$AppUsageAccessSettingsActivity`, `Settings$OverlaySettingsActivity`
+     * for both overlay list and detail; `UsageAccessSettingsActivity` is the
+     * AOSP list): turning either grant off drops every wall, this cover
+     * included, and then the lock's own off screen goes unwalled. An app may
+     * not refuse a revocation, so covering the screen is all there is. The
+     * price is the same as for admins: no other app can be given usage access
+     * or display over apps while the lock is on. Granting Euler's Lab its own
+     * lost grant still works, because without that grant no wall can land.
+     */
+    private val COVERED_SCREENS = listOf(
+        "DeviceAdminAdd",
+        "UsageAccessSettingsActivity",
+        "OverlaySettingsActivity"
+    )
 
     fun component(context: Context): ComponentName = ComponentName(context, WakeProofAdmin::class.java)
 
@@ -40,15 +62,38 @@ object UninstallLock {
     }.getOrDefault(false)
 
     /**
+     * The adb release is refused until 2027-11-21 00:00 KST (2026-11-21, the
+     * user: "prevents me from uninstalling euler's lab for the next" year, "I
+     * can do updates but no uninstallation"). A fixed instant, not a year from
+     * whenever the lock goes on, so switching the lock off and on again (where
+     * that is possible at all) never moves it.
+     */
+    const val HELD_UNTIL_MILLIS = 1_826_722_800_000L
+
+    /**
+     * Pure: whether the adb release may run. Only on a [clockProven] clock at
+     * or past [HELD_UNTIL_MILLIS]: an unproven clock is refused, so setting the
+     * date ahead by hand (or going offline first) opens nothing.
+     */
+    fun releaseAllowed(proven: Boolean, wallMillis: Long): Boolean =
+        proven && wallMillis >= HELD_UNTIL_MILLIS
+
+    /**
      * Releases active-admin status from inside our own UID, so that
      * `pm uninstall -k` succeeds: `dpm remove-active-admin` is refused for an
      * admin that is not test-only. Called by the debug-only `ReleaseAdminReceiver`.
+     * Returns false, releasing nothing, while [releaseAllowed] says no.
      */
-    fun releaseAdmin(context: Context) {
+    fun releaseAdmin(context: Context): Boolean {
+        if (!releaseAllowed(clockProven(context), System.currentTimeMillis())) {
+            Log.w("UninstallLock", "release refused: the lock holds until 2027-11-21")
+            return false
+        }
         runCatching {
             context.getSystemService(DevicePolicyManager::class.java)
                 ?.removeActiveAdmin(component(context))
         }
+        return true
     }
 
     /** The system's own "activate this admin" screen. */
@@ -62,16 +107,21 @@ object UninstallLock {
             )
 
     /**
-     * Pure: whether the screen in front is where the lock would be switched off:
-     * [lockOn], and one of [frontClasses] is Settings' `DeviceAdminAdd`. The same
-     * screen also activates other apps' admins; covering it for them too is the
+     * Pure: whether the screen in front is where the lock would be switched off,
+     * or where a grant it rests on would be revoked: [lockOn], and one of
+     * [frontClasses] is one of [COVERED_SCREENS]. The same screens also serve
+     * other apps; covering it for them too is the
      * price, as Usage Access names the activity but not whose admin it shows.
      * Never while the lock is off, or WakeProof's own activation would be walled.
      */
     fun coversDeactivation(lockOn: Boolean, frontPackage: String, frontClasses: Collection<String>): Boolean =
         lockOn && frontPackage == SETTINGS_PACKAGE &&
-            // Ends-with: One UI names it SecDeviceAdminAdd (seen on the Tab S9 FE+, Android 16).
-            frontClasses.any { it.substringAfterLast('.').endsWith(DEACTIVATE_SCREEN) }
+            // Ends-with: One UI names it SecDeviceAdminAdd (seen on the Tab S9 FE+, Android 16),
+            // and the grant screens are inner classes (Settings$AppUsageAccessSettingsActivity).
+            frontClasses.any { cls ->
+                val name = cls.substringAfterLast('.')
+                COVERED_SCREENS.any { name.endsWith(it) }
+            }
 
     const val SETTINGS_PACKAGE = "com.android.settings"
 

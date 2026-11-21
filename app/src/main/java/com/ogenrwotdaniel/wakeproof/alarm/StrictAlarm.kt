@@ -9,8 +9,8 @@ import com.ogenrwotdaniel.wakeproof.data.db.AlarmType
  * The LOCKED alarms (2026-11-04, the user's request: "my first alarm at 3am,
  * no way around, can't be turned off on the phone, surviving restart too like
  * focus timing"; a second at 05:30 the same night, and both at 25 pushups).
- * Now 04:00 at 30 pushups ([SLOTS], [REPS]; moved from 03:00 on 2026-11-19,
- * 30 reps since 2026-11-20), plus two fixed but not hard slots added on
+ * Now 04:00 at 10 pushups ([SLOTS], [REPS]; moved from 03:00 on 2026-11-19,
+ * 30 reps on 2026-11-20 and back to 10 on 2026-11-21), plus two fixed but not hard slots added on
  * 2026-11-20 at the user's request, both on a soft chime: the 12:00 lunch
  * reading alarm ("force me to read 30 minutes a day"), silenced only by
  * starting the 30-minute session, and tomorrow's top three at 20:50, ten

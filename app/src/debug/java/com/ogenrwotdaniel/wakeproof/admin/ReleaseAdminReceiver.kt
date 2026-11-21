@@ -13,9 +13,17 @@ import android.content.Intent
  * which the adb shell holds and no installed app can be granted: until
  * 2026-11-16 this was an extra on the exported MainActivity, which any app
  * on the phone could send to switch the lock off.
+ *
+ * Refused until 2027-11-21 ([UninstallLock.HELD_UNTIL_MILLIS]); `am broadcast`
+ * prints the answer (`result=1` and "released", or `result=0` and the refusal).
  */
 class ReleaseAdminReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        UninstallLock.releaseAdmin(context.applicationContext)
+        val released = UninstallLock.releaseAdmin(context.applicationContext)
+        if (isOrderedBroadcast) {
+            resultCode = if (released) 1 else 0
+            resultData = if (released) "released" else
+                "refused: the uninstall lock holds until 2027-11-21 (and needs network time)"
+        }
     }
 }

@@ -229,19 +229,14 @@ fun SettingsScreen(
             HorizontalDivider()
 
             Text(text = "Focus sessions", style = MaterialTheme.typography.titleMedium)
-            SliderSetting(
-                label = "Daily focus goal",
-                value = settings.dailyFocusGoalMinutes,
-                range = SettingsViewModel.MIN_DAILY_FOCUS_GOAL_MINUTES.toFloat()..
-                    SettingsViewModel.MAX_DAILY_FOCUS_GOAL_MINUTES.toFloat(),
-                unit = "min",
-                steps = SettingsViewModel.DAILY_FOCUS_GOAL_STEPS,
-                valueText = ::formatDurationMinutes,
-                onCommit = viewModel::setDailyFocusGoalMinutes
+            Text(
+                text = "Daily focus goal: ${formatDurationMinutes(settings.dailyFocusGoalMinutes)} (fixed)",
+                style = MaterialTheme.typography.bodyLarge
             )
             Text(
-                text = "Before an exam on the Exams list the goal rises by itself: a quarter more " +
-                    "from two weeks out, half more in the last week, double in the last three days.",
+                // 8 h raised by a quarter is 10 h; by half or double it meets the 12 h cap.
+                text = "The day's focus blocks add up to it. Before an exam on the Exams list it " +
+                    "rises by itself: 10h from two weeks out, 12h in the last week.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -603,9 +598,11 @@ private fun UninstallLockSection(modifier: Modifier = Modifier) {
             text = "Makes Euler's Lab a device admin (not device owner, so Samsung services " +
                 "keep working). Android then refuses to uninstall it, and the screen that " +
                 "switches the admin off is walled, along with other apps' admin screens. " +
-                "There is no off button. A computer (adb), Safe Mode, taking away Euler's Lab's " +
-                "usage access or display-over-apps permission, or a factory reset still gets " +
-                "past it.",
+                "There is no off button, and until 21 November 2027 the computer (adb) way out " +
+                "is refused too; updates still install. The usage access and display-over-apps " +
+                "screens are walled as well, so those grants stay on (no other app can be " +
+                "given them meanwhile). Safe Mode, a force stop from App info, or a factory " +
+                "reset still gets past it.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

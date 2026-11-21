@@ -25,10 +25,31 @@ const val MIN_PUSHUP_TARGET = 5
 
 /**
  * Most pushups ANY alarm asks for, and what the locked 04:00 alarm asks for:
- * 30 since 2026-11-20 (the user: "increase morning pushups to 30"; 10 from
- * 2026-11-04). A stored value above it reads as this.
+ * 10 again since 2026-11-21 (the user: "the 30 fixed pushups almost killed me";
+ * 30 for one day from 2026-11-20, 10 from 2026-11-04). A stored value above it
+ * reads as this.
  */
-const val MAX_PUSHUP_TARGET = 30
+const val MAX_PUSHUP_TARGET = 10
+
+/**
+ * The daily focus goal, fixed at eight hours since 2026-11-21 at the user's
+ * request ("we are fixing daily focus to 8 hours"): the sum of every verified
+ * focus block in a day, not one session. It is no longer a setting. Exam weeks
+ * still raise it ([focusGoalOn]).
+ */
+const val FIXED_DAILY_FOCUS_GOAL_MINUTES = 8 * 60
+
+/** The first day scored against [FIXED_DAILY_FOCUS_GOAL_MINUTES]: 2026-11-21. */
+const val FIXED_FOCUS_GOAL_SINCE_DAY = 20_778L
+
+/**
+ * Pure: the goal [day] is scored against before any exam boost. Days before
+ * the goal was fixed keep the goal the user had set then ([goalBeforeFixed]),
+ * so installing the fixed goal does not re-score a won 6 h day as a lost 8 h
+ * one and wipe the streak.
+ */
+fun focusGoalBaseOn(day: Long, goalBeforeFixed: Int): Int =
+    if (day < FIXED_FOCUS_GOAL_SINCE_DAY) goalBeforeFixed else FIXED_DAILY_FOCUS_GOAL_MINUTES
 
 /** User-tunable settings (DataStore-backed). */
 data class WakeProofSettings(
@@ -81,7 +102,13 @@ data class WakeProofSettings(
     val focusFloatingTimer: Boolean = true,
     /** Screen never times out while a session runs — focus *and* break phases. */
     val sessionKeepScreenOn: Boolean = true,
-    val dailyFocusGoalMinutes: Int = 120,
+    val dailyFocusGoalMinutes: Int = FIXED_DAILY_FOCUS_GOAL_MINUTES,
+    /**
+     * The goal the user had set before it was fixed, frozen: nothing writes it
+     * any more except sync, which carries the same frozen value between
+     * devices. Only days before [FIXED_FOCUS_GOAL_SINCE_DAY] use it.
+     */
+    val focusGoalBeforeFixed: Int = 120,
     val studySubjects: Set<String> = DEFAULT_STUDY_SUBJECTS,
     val activeSubject: String = DEFAULT_ACTIVE_SUBJECT,
     /** Credits per course, for the weekly balance; a course without any is left out of it. */
@@ -177,7 +204,8 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
             focusImmersiveTimer = prefs[FOCUS_IMMERSIVE_TIMER] ?: true,
             focusFloatingTimer = prefs[FOCUS_FLOATING_TIMER] ?: true,
             sessionKeepScreenOn = prefs[SESSION_KEEP_SCREEN_ON] ?: true,
-            dailyFocusGoalMinutes = prefs[DAILY_FOCUS_GOAL_MINUTES] ?: 120,
+            dailyFocusGoalMinutes = FIXED_DAILY_FOCUS_GOAL_MINUTES,
+            focusGoalBeforeFixed = prefs[DAILY_FOCUS_GOAL_MINUTES] ?: 120,
             studySubjects = prefs[STUDY_SUBJECTS]
                 ?.takeIf { it.isNotEmpty() && it != setOf("General") }
                 ?: WakeProofSettings.DEFAULT_STUDY_SUBJECTS,
@@ -246,19 +274,11 @@ class SettingsRepository @Inject constructor(@ApplicationContext context: Contex
     suspend fun setLauncherFavorites(value: List<String>) =
         dataStore.edit { it[LAUNCHER_FAVORITES] = value.joinToString(",") }
     /**
-     * A goal set on THIS device. Stamped with the time so cloud sync can tell it
-     * apart from — and let it win over — an older value on another device.
-     */
-    suspend fun setDailyFocusGoalMinutes(value: Int) = dataStore.edit {
-        it[DAILY_FOCUS_GOAL_MINUTES] = value
-        it[DAILY_FOCUS_GOAL_UPDATED_AT] = System.currentTimeMillis()
-    }
-
-    /**
      * The daily focus goal and when it was last changed (0 = never changed on
-     * this device since syncing it began). The one setting that syncs: the
-     * streak is scored against it, so two devices with different goals showed
-     * two different streaks for the same day.
+     * this device since syncing it began), for cloud sync. Since 2026-11-21
+     * this is the frozen goal from before it was fixed
+     * ([WakeProofSettings.focusGoalBeforeFixed]); it still syncs so every
+     * device scores the old days against the same goal.
      */
     suspend fun focusGoalStamp(): Pair<Int, Long> {
         val prefs = dataStore.data.first()

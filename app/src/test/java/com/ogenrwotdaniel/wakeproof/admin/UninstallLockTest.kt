@@ -60,4 +60,41 @@ class UninstallLockTest {
         assertFalse(grace(at = 1_000L, now = 2_000L, boot = 6))
         assertFalse(grace(at = 1_000L, now = 2_000L, boot = -1, nowBoot = -1))
     }
+
+    @Test
+    fun `the adb release is refused until 2027-11-21 on a proven clock`() {
+        val held = UninstallLock.HELD_UNTIL_MILLIS
+        assertTrue(held == java.time.ZonedDateTime.of(2027, 11, 21, 0, 0, 0, 0, java.time.ZoneId.of("Asia/Seoul")).toInstant().toEpochMilli())
+        val today = java.time.ZonedDateTime.of(2026, 11, 21, 12, 0, 0, 0, java.time.ZoneId.of("Asia/Seoul")).toInstant().toEpochMilli()
+        assertFalse(UninstallLock.releaseAllowed(proven = true, wallMillis = today))
+        assertFalse(UninstallLock.releaseAllowed(proven = true, wallMillis = held - 1))
+        assertTrue(UninstallLock.releaseAllowed(proven = true, wallMillis = held))
+    }
+
+    @Test
+    fun `a clock set ahead by hand opens nothing`() {
+        assertFalse(UninstallLock.releaseAllowed(proven = false, wallMillis = UninstallLock.HELD_UNTIL_MILLIS + 1))
+    }
+
+    @Test
+    fun `the usage access and display-over-apps screens are covered too`() {
+        listOf(
+            "com.android.settings.Settings\$AppUsageAccessSettingsActivity",
+            "com.android.settings.Settings\$UsageAccessSettingsActivity",
+            "com.android.settings.Settings\$OverlaySettingsActivity",
+            "com.android.settings.Settings\$AppDrawOverlaySettingsActivity"
+        ).forEach { assertTrue(it, UninstallLock.coversDeactivation(true, settings, setOf(it))) }
+        assertFalse(
+            UninstallLock.coversDeactivation(false, settings, setOf("com.android.settings.Settings\$OverlaySettingsActivity"))
+        )
+    }
+
+    @Test
+    fun `other Settings pages stay open, the date and time one above all`() {
+        listOf(
+            "com.android.settings.Settings\$DateTimeSettingsActivity",
+            "com.android.settings.applications.InstalledAppDetails",
+            "com.android.settings.SubSettings"
+        ).forEach { assertFalse(it, UninstallLock.coversDeactivation(true, settings, setOf(it))) }
+    }
 }

@@ -208,9 +208,10 @@ class WeeklyReportGenerator @Inject constructor() {
                     "fixed slot — same time, every day — so the gap can't open again."
 
             goalDays == 0 && stats.dailyGoalMinutes > 60 ->
-                "You didn't reach ${stats.dailyGoalMinutes} minutes on any day. Drop the goal " +
-                    "to ${(focusTotal / stats.days.size.coerceAtLeast(1) / 15 + 1) * 15} minutes " +
-                    "and actually hit it — a goal you miss daily stops meaning anything."
+                // The goal is fixed (2026-11-21), so the advice is a step toward it, not a lower goal.
+                "You didn't reach ${stats.dailyGoalMinutes} minutes on any day. Aim for " +
+                    "${(focusTotal / stats.days.size.coerceAtLeast(1) / 15 + 1) * 15} minutes " +
+                    "a day next week and add a block each week until the goal holds."
 
             neglectedSubject(stats.balance) != null -> {
                 val behind = neglectedSubject(stats.balance)!!
@@ -229,8 +230,8 @@ class WeeklyReportGenerator @Inject constructor() {
                     "It's the cheapest hour you'll get back."
 
             goalDays >= 5 ->
-                "Five strong days is a working system. Raise the goal to " +
-                    "${stats.dailyGoalMinutes + 30} minutes and see if it still holds."
+                "Five strong days is a working system. Make it six: put tomorrow's " +
+                    "first block on the calendar before the week starts."
 
             else ->
                 "Aim to hit the goal on ${(goalDays + 1).coerceAtMost(7)} days, not all 7. " +

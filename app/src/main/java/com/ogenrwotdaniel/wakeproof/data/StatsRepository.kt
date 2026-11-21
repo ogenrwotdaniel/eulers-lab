@@ -79,18 +79,18 @@ class StatsRepository @Inject constructor(
     private data class Source(
         val logs: List<CompletionLog>,
         val alarms: List<Alarm>,
-        /** The goal the user set; [goalOn] is what a day is scored against. */
-        val focusGoalMinutes: Int,
+        /** The goal before it was fixed, for older days; [goalOn] is what a day is scored against. */
+        val goalBeforeFixed: Int,
         val exams: List<ExamDay>
     ) {
-        fun goalOn(day: Long): Int = focusGoalOn(day, focusGoalMinutes, exams)
+        fun goalOn(day: Long): Int = focusGoalOn(day, focusGoalBaseOn(day, goalBeforeFixed), exams)
     }
 
     /** Logs, the schedule and the focus goal together — every number here is scored against them. */
     private fun source(): Flow<Source> = combine(
         window(),
         alarmDao.observeAll(),
-        settingsRepository.settings.map { it.dailyFocusGoalMinutes }.distinctUntilChanged(),
+        settingsRepository.settings.map { it.focusGoalBeforeFixed }.distinctUntilChanged(),
         // Past exams too: the days before them were scored against a raised goal.
         examDao.observeUpcoming(LocalDate.now().toEpochDay() - WINDOW_DAYS)
             .map { rows -> rows.map { ExamDay(it.name, it.epochDay) } }
@@ -98,7 +98,8 @@ class StatsRepository @Inject constructor(
 
     /** Today's focus goal: the user's own, raised before an exam ([focusGoalOn]). */
     fun observeFocusGoal(): Flow<FocusGoalToday> = source().map { src ->
-        focusGoalToday(LocalDate.now().toEpochDay(), src.focusGoalMinutes, src.exams)
+        val today = LocalDate.now().toEpochDay()
+        focusGoalToday(today, focusGoalBaseOn(today, src.goalBeforeFixed), src.exams)
     }.distinctUntilChanged()
 
     fun observeToday(): Flow<TodayStatus> = source().map { (logs, alarms) ->

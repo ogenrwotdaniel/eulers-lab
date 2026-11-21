@@ -167,18 +167,18 @@ class WeeklyReportGeneratorTest {
     }
 
     @Test
-    fun `suggests dropping an unreachable goal to something hittable`() {
+    fun `suggests a hittable step toward an unreachable goal`() {
         val text = generator.report(stats(focusPerDay = List(7) { 40 }, goal = 240))
             .substringAfter("Next week:")
-        // Averaging 40 min/day, so the replacement goal is the next 15-minute
-        // step up from that — reachable — not the 240 being missed every day.
-        assertTrue(text.contains("Drop the goal to 45 minutes"))
+        // Averaging 40 min/day, so the step is the next 15 minutes up from that —
+        // reachable — while the fixed 240 stays the goal.
+        assertTrue(text.contains("Aim for 45 minutes a day"))
     }
 
     @Test
     fun `a strong week is told to raise the bar, not to fix something`() {
         val text = generator.report(stats(focusPerDay = List(7) { 150 }, goal = 120))
-        assertTrue(text.substringAfter("Next week:").contains("Raise the goal to 150"))
+        assertTrue(text.substringAfter("Next week:").contains("Make it six"))
         assertTrue(text.contains("Nothing stands out"))
     }
 

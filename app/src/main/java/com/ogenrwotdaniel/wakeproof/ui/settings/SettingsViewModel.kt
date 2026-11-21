@@ -328,21 +328,6 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Clamp MUST match the slider's range in SettingsScreen
-     * ([MIN_DAILY_FOCUS_GOAL_MINUTES]..[MAX_DAILY_FOCUS_GOAL_MINUTES]) — the
-     * same bound written down twice is what silently capped the sound fade at
-     * 15 s while the slider offered 60 (see [setSoundFadeSeconds]), so both ends
-     * read the constants rather than their own literals.
-     */
-    fun setDailyFocusGoalMinutes(value: Int) {
-        viewModelScope.launch {
-            settingsRepository.setDailyFocusGoalMinutes(
-                value.coerceIn(MIN_DAILY_FOCUS_GOAL_MINUTES, MAX_DAILY_FOCUS_GOAL_MINUTES)
-            )
-        }
-    }
-
     fun saveKey(key: String) {
         if (key.isBlank()) return
         keyStore.setKey(key)
@@ -374,23 +359,5 @@ class SettingsViewModel @Inject constructor(
          * two cannot drift apart again (see [setSoundFadeSeconds]).
          */
         const val MAX_SOUND_FADE_SECONDS = 60
-
-        /**
-         * Bounds of the daily focus goal, shared with the Settings slider.
-         *
-         * Twelve hours, not the old eight: eight is a working day, and the
-         * people who set a focus goal at all are the ones revising for exams
-         * who blew past it and had nothing left to aim at. The floor stays at
-         * half an hour — a goal below one pomodoro is met before it is set.
-         */
-        const val MIN_DAILY_FOCUS_GOAL_MINUTES = 30
-        const val MAX_DAILY_FOCUS_GOAL_MINUTES = 720
-
-        /**
-         * Slider stops for the goal, one per quarter hour across the range.
-         * A free slider over 690 minutes lands on numbers like 437.
-         */
-        const val DAILY_FOCUS_GOAL_STEPS =
-            (MAX_DAILY_FOCUS_GOAL_MINUTES - MIN_DAILY_FOCUS_GOAL_MINUTES) / 15 - 1
     }
 }

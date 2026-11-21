@@ -1014,7 +1014,8 @@ class AppBlockService : Service() {
             GateVerdict.ADMIN_LOCK_WALL -> BlockedActivity.ruleIntent(
                 this,
                 "Uninstall lock is on",
-                "Euler's Lab stays a device admin, so it cannot be uninstalled from the phone."
+                "Euler's Lab stays a device admin until 21 November 2027, and keeps its usage " +
+                    "access and display over other apps, so it cannot be uninstalled from the phone."
             )
             GateVerdict.HISTORY_WALL -> BlockedActivity.ruleIntent(
                 this,

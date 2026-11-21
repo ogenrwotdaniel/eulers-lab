@@ -165,9 +165,9 @@ class StrictAlarmTest {
     }
 
     @Test
-    fun `the one morning alarm is 04 00, at 30 pushups`() {
+    fun `the one morning alarm is 04 00, at 10 pushups`() {
         assertEquals(listOf(StrictAlarm.Slot(4, 0)), StrictAlarm.SLOTS.filter { it.hard })
-        assertEquals(30, StrictAlarm.REPS)
+        assertEquals(10, StrictAlarm.REPS)
     }
 
     @Test
